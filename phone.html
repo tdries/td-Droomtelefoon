@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Droomtelefoon</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Pacifico&family=Nunito:wght@600;800;900&family=VT323&display=swap">
+<style>
+  :root { --pink: #ff2d9b; --cyan: #2ef2ff; --lime: #b4ff3c; --yellow: #ffe600; --ink: #0b0014; --card: #160a2a; --line: #2a1448; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
+  html, body { height: 100% } body { margin: 0; background: var(--ink); color: #fff; font-family: 'Nunito', system-ui, sans-serif; overflow: hidden }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; padding: calc(16px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom)); gap: 12px }
+  .screen.on { display: flex }
+  .script { font: 400 22px 'Pacifico'; color: #fff; text-shadow: 0 0 12px #fff8; text-align: center }
+  .tag { font: 800 12px 'Nunito'; letter-spacing: 4px; text-align: center; color: #ffe0f4 }
+  h1 { margin: 0; font: 400 44px/1 'Anton'; text-align: center; text-shadow: 0 4px 0 #a3005c; letter-spacing: 1px }
+  button { font-family: 'Nunito'; border: 0; cursor: pointer; color: #fff }
+  .round { border-radius: 50%; display: grid; place-items: center } .round svg { width: 46%; height: 46% }
+  .green { background: linear-gradient(180deg, var(--lime), #3fb800); box-shadow: 0 10px 0 #1e6000, 0 0 30px #b4ff3c99, inset 0 14px 16px -10px #fffc } .green svg { stroke: var(--ink) }
+  .red { background: linear-gradient(180deg, #ff6b6b, #c40000); box-shadow: 0 8px 0 #7a0000, inset 0 10px 12px -8px #fff9 } .red svg { stroke: #fff; transform: rotate(135deg) }
+  .face { width: 200px; height: 200px; margin: 10px auto 0; border-radius: 50%; background: var(--ink); border: 6px solid #fff; box-shadow: 0 0 40px #ffffff88, inset 0 0 40px #7b2cff66; display: grid; place-items: center; overflow: hidden; position: relative } .face img { width: 100%; height: 100%; object-fit: cover } .face svg { width: 65% }
+  .badge { position: absolute; left: 50%; transform: translateX(-50%); bottom: -14px; padding: 8px 18px; border-radius: 999px; background: var(--yellow); color: var(--ink); font: 400 26px/1 'Anton'; box-shadow: 0 6px 0 #a88f00 }
+  #boot { justify-content: center; align-items: center; background: radial-gradient(360px 260px at 50% 0%, #3a0a5c 0%, var(--ink) 70%) }
+  #idle { justify-content: center; align-items: center; background: radial-gradient(360px 260px at 50% 0%, #3a0a5c 0%, var(--ink) 70%) }
+  #idle .clock { font: 400 72px/1 'Anton'; color: var(--cyan); text-shadow: 0 0 20px #2ef2ff99 }
+  #idle .gif { width: min(78vw, 300px); max-height: 34vh; object-fit: cover; border-radius: 22px; border: 4px solid #fff; box-shadow: 0 0 30px #ff3ea5aa; margin: 14px 0 4px }
+  #idle .giphy { font: 700 10px 'Nunito'; color: #ffb3e6; opacity: .7; margin-bottom: 10px } #gif[hidden] + .giphy, #i-talker:not([hidden]) ~ .gif, #i-talker:not([hidden]) ~ .giphy { display: none }
+  #ring { align-items: center; background: radial-gradient(400px 300px at 50% 0%, #ff8ae0 0%, var(--pink) 55%, #c0006b 100%) }
+  #ring .wrap { position: relative; margin-top: 10px } #ring .face { width: min(200px, 22vh); height: min(200px, 22vh) } /* shrinks on short screens so the big name and the buttons fit */
+  @media (max-height: 760px) { #ring .tag { letter-spacing: 1px } #ring h1 { font-size: 30px } #ring .face { width: 16vh; height: 16vh } #ring .turnname { font-size: 42px } #ring .note { font-size: 13px; padding: 8px 14px }
+    #ring .round.green { width: 88px !important; height: 88px !important } #ring .round.red { width: 62px !important; height: 62px !important } #ring .halo { inset: -14px } } #ring .halo { position: absolute; inset: -22px; border-radius: 50%; border: 3px solid #ffffff55; animation: halo 1.2s infinite } @keyframes halo { from { transform: scale(.9); opacity: 1 } to { transform: scale(1.3); opacity: 0 } }
+  #dial { background: radial-gradient(360px 260px at 50% 0%, #3a0a5c 0%, var(--ink) 70%); padding-top: calc(48px + env(safe-area-inset-top)); max-width: 520px; margin: 0 auto } /* title clears the voice badge; the keypad stays phone-sized on a laptop, the call screen uses the full width */
+  #keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 22px; width: min(100%, 330px, calc((100dvh - 280px) * .72)); margin: 4px auto 0 } /* 4 rows of round keys always fit under the display */
+  #keys button { aspect-ratio: 1; border-radius: 50%; border: 0; background: linear-gradient(#fff6fc, #ffc6e7); color: #c0006b; font: 400 36px/1 'Anton'; box-shadow: 0 7px 0 #b30b6a, inset 0 -4px 8px #ff9ad566; display: grid; place-items: center; transition: transform .06s, box-shadow .06s }
+  #keys button small { display: block; font: 800 11px 'Nunito'; color: #c0006b; margin-top: -2px }
+  #keys button:active, #keys button.press { transform: translateY(6px); box-shadow: 0 1px 0 #b30b6a; background: linear-gradient(#ffe14d, #ffc400) }
+  #keys button:disabled { background: #3a1556; color: #6d4a8a; box-shadow: 0 7px 0 #24083a } #keys button:disabled small { color: #6d4a8a }
+  #keys .gap { visibility: hidden }
+  .lcd { margin: 6px 10px 0; padding: 10px 14px; border-radius: 14px; border: 5px solid #6f8457; background: linear-gradient(#c7d9a8, #a9bd8a); color: #1d2a14; font-family: 'VT323', monospace; text-align: center; box-shadow: inset 0 3px 8px #0003 }
+  .lcd b { display: block; font-weight: 400; font-size: 40px; line-height: 1 } .lcd small { display: block; font-size: 22px; line-height: 1.1 }
+  #call { background: radial-gradient(360px 260px at 50% 0%, #3a0a5c 0%, var(--ink) 70%) }
+  .head { display: flex; align-items: center; gap: 12px } .head .mini { width: 56px; height: 56px; border-radius: 50%; background: var(--card); border: 3px solid var(--pink); box-shadow: 0 0 16px #ff2d9b88; display: grid; place-items: center; overflow: hidden } .head .mini img { width: 100%; height: 100%; object-fit: cover } .head .mini svg { width: 70% }
+  .head h2 { margin: 0; font: 400 24px/1 'Anton'; letter-spacing: 1px } .head small { font: 700 12px 'Nunito'; color: #ffb3e6 }
+  /* whose turn it is, readable from across the room (Tim) */
+  .turnname { display: block; margin-top: 4px; font: 400 clamp(44px, 13vw, 96px)/1 'Anton'; letter-spacing: 1px; color: var(--yellow); text-shadow: 0 0 22px #ff2d9b, 0 4px 0 #c0006b; text-transform: uppercase; overflow-wrap: anywhere }
+  .head small b.turnname { font-size: clamp(30px, 4.2vw, 60px); text-shadow: 0 0 16px #ff2d9b, 0 3px 0 #c0006b } #d-name { font-size: 36px }
+  .timer { margin-left: auto; padding: 4px 12px; border-radius: 10px; border: 4px solid #6f8457; background: linear-gradient(#c7d9a8, #a9bd8a); color: #1d2a14; font: 400 30px/1 'VT323', monospace }
+  .wave { display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 40px } .wave i { width: 6px; border-radius: 3px; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); height: 8px; transition: height .15s }
+  .wave.on i { animation: w .5s infinite alternate } .wave i:nth-child(odd) { animation-delay: .1s } .wave i:nth-child(3n) { animation-delay: .25s } @keyframes w { from { height: 6px } to { height: 40px } }
+  #log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 0 }
+  .b { max-width: 82%; padding: 12px 16px; font: 700 16px/1.35 'Nunito' } .b.a { align-self: flex-start; border-radius: 22px 22px 22px 6px; background: linear-gradient(180deg, #ff6ad5, var(--pink)); box-shadow: inset 0 8px 12px -8px #fffb } .b.u { align-self: flex-end; border-radius: 22px 22px 6px 22px; background: var(--card); border: 2px solid var(--cyan); color: #dffcff }
+  .b.wait { opacity: .6; font-style: italic }
+  /* call screen: 3x text, readable from across the room (Tim); header starts under the fixed voice badge */
+  #call .head { margin-top: 44px }
+  #call .b { font-size: 48px; line-height: 1.2; padding: 14px 22px; max-width: 92% } #call #sug button { font-size: 39px; padding: 12px 22px; max-width: 100%; white-space: normal; text-align: left; line-height: 1.15; border-radius: 28px } #call .inrow input { font-size: 48px; height: auto; padding: 8px 22px }
+  #sug { display: flex; gap: 8px; overflow-x: auto; flex-shrink: 0 } #sug button { flex-shrink: 0; padding: 10px 14px; border-radius: 999px; border: 2px solid var(--yellow); background: #ffe60022; color: var(--yellow); font: 800 13px 'Nunito' }
+  #sug[hidden], .inrow[hidden] { display: none !important }
+  .inrow { display: flex; gap: 8px; align-items: center } .inrow input { flex: 1; height: 50px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: #fff; padding: 0 18px; font: 700 16px 'Nunito'; min-width: 0 }
+  #mic { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(180deg, var(--cyan), #0aa9c2); box-shadow: 0 5px 0 #06647a; display: grid; place-items: center; flex-shrink: 0 } #mic.on { background: linear-gradient(180deg, #ff6b6b, #c40000) }
+  .acts { display: flex; gap: 10px } #guess { flex: 1; height: 58px; border-radius: 999px; background: linear-gradient(180deg, var(--yellow), #ff8a00); color: var(--ink); font: 400 22px 'Anton'; letter-spacing: 1px; box-shadow: 0 6px 0 #9a5200, inset 0 10px 12px -8px #fffc }
+  #result { justify-content: center; align-items: center; text-align: center } #result h1 { font-size: 56px }
+  .note { padding: 14px 20px; border-radius: 24px; background: #0b001466; font: 700 15px/1.35 'Nunito'; text-align: center }
+  .big { height: 64px; border-radius: 999px; background: linear-gradient(180deg, var(--yellow), #ff8a00); color: var(--ink); font: 400 24px 'Anton'; letter-spacing: 1px; box-shadow: 0 6px 0 #9a5200; padding: 0 32px }
+  .ja { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #b4ff3c; color: #0b0014; font: 900 12px 'Nunito'; vertical-align: middle; white-space: nowrap }
+  /* talking face: the photo's jaw drops in time with the voice, puppet style */
+  .talker { position: relative; width: 170px; aspect-ratio: 1; margin: 4px auto 0; border-radius: 50%; overflow: hidden; border: 5px solid #fff; box-shadow: 0 0 34px #ff3ea5aa; flex-shrink: 0; --open: 0 }
+  .talker[hidden] { display: none }
+  .talker > div { position: absolute; background-image: var(--img); background-repeat: no-repeat }
+  .t-base { inset: 0; background-size: cover; background-position: center }
+  .t-mouth { height: calc(var(--open) * var(--drop) + 1px); margin-top: -1px; opacity: min(1, calc(var(--open) * 8)); /* invisible while closed, so no line across the lip */ border-radius: 0 0 50% 50% / 0 0 100% 100%; background: radial-gradient(ellipse at 50% 20%, #4a0016, #0d0004 70%) !important }
+  .t-jaw { transform: translateY(calc(var(--open) * var(--drop)));
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent), linear-gradient(180deg, #000 55%, transparent);
+    -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent), linear-gradient(180deg, #000 55%, transparent); mask-composite: intersect }
+  @media (prefers-reduced-motion: reduce) { .t-jaw { transform: none } .t-mouth { display: none } }
+  /* ---- next level: task cards, drawing pad, stickers, floating hearts ---- */
+  .hearts { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0 }
+  .hearts i { position: absolute; bottom: -40px; left: var(--x); width: var(--s); height: var(--s); opacity: 0; color: var(--c); animation: floatup var(--d) linear infinite; animation-delay: var(--dl) }
+  .hearts i svg { width: 100%; height: 100%; fill: currentColor; filter: drop-shadow(0 0 6px currentColor) }
+  @keyframes floatup { 0% { transform: translateY(0) rotate(-8deg); opacity: 0 } 10% { opacity: .55 } 90% { opacity: .35 } 100% { transform: translateY(-110vh) rotate(10deg); opacity: 0 } }
+  .screen > *:not(.hearts) { position: relative; z-index: 1 }
+  #task { border-radius: 26px; padding: 14px 16px 16px; background: linear-gradient(160deg, #ffe600 0%, #ff8a00 100%); color: var(--ink); box-shadow: 0 10px 0 #9a5200, 0 0 30px #ffe60066; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; animation: taskin .5s cubic-bezier(.2, 1.5, .4, 1) }
+  #task[hidden] { display: none } @keyframes taskin { from { transform: scale(.6) rotate(-4deg); opacity: 0 } }
+  #task .tt { display: flex; align-items: center; gap: 10px; font: 400 22px/1 'Anton'; letter-spacing: 1px } #task .tt svg { width: 30px; height: 30px; flex-shrink: 0 }
+  #task .tp { font: 800 17px/1.3 'Nunito' }
+  #task .opts { display: flex; flex-direction: column; gap: 8px } #task .opts button { text-align: left; padding: 12px 14px; border-radius: 16px; background: #fff; color: var(--ink); font: 800 15px/1.3 'Nunito'; box-shadow: 0 4px 0 #c9a200; display: flex; gap: 10px; align-items: center } #task .opts b { width: 26px; height: 26px; border-radius: 50%; background: var(--pink); color: #fff; display: grid; place-items: center; font: 400 16px 'Anton'; flex-shrink: 0 }
+  #task .row { display: flex; gap: 8px } #task .row button, #task .row label { flex: 1; height: 48px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; font: 800 15px 'Nunito'; cursor: pointer } #task .row svg { width: 20px; height: 20px }
+  #task .go { background: var(--pink); color: #fff; box-shadow: 0 5px 0 #a3005c } #task .ghost { background: #0b001422; color: var(--ink); flex: 0 0 auto; padding: 0 16px }
+  #pad { width: 100%; aspect-ratio: 4 / 3; border-radius: 16px; background: #fff; touch-action: none; box-shadow: inset 0 0 0 3px #ffffff, inset 0 0 0 6px #ff9ad5; display: block }
+  #task .prev { width: 100%; max-height: 180px; object-fit: cover; border-radius: 16px; border: 4px solid #fff }
+  #task .vote { font: 400 34px/1 'Anton'; text-align: center } #task .vote small { display: block; font: 800 13px 'Nunito'; margin-top: 4px }
+  .timer.paused { background: linear-gradient(#ffd0ea, #ffb3e6); border-color: #c0006b; color: #c0006b; animation: blink 1s steps(2) infinite } @keyframes blink { 50% { opacity: .4 } }
+  #cam[hidden] { display: none !important }
+  #cam { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(180deg, #ff6ad5, var(--pink)); box-shadow: 0 5px 0 #a3005c; display: grid; place-items: center; flex-shrink: 0; cursor: pointer } #cam svg { width: 24px; height: 24px } #cam.hot { animation: pulse .8s infinite alternate } @keyframes pulse { to { transform: scale(1.12); box-shadow: 0 5px 0 #a3005c, 0 0 24px var(--pink) } }
+  #sticker { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%) rotate(-8deg) scale(0); z-index: 50; padding: 14px 26px; border-radius: 18px; font: 400 44px/1 'Anton'; letter-spacing: 2px; color: var(--ink); background: var(--lime); box-shadow: 0 8px 0 #4e7a00, 0 0 40px #b4ff3c88; pointer-events: none; white-space: nowrap }
+  #sticker.on { animation: stick 1.6s cubic-bezier(.2, 1.6, .4, 1) forwards } #sticker.bad { background: #ff6b6b; color: #fff; box-shadow: 0 8px 0 #7a0000 } #sticker.gold { background: var(--yellow); box-shadow: 0 8px 0 #9a5200 }
+  @keyframes stick { 0% { transform: translate(-50%, -50%) rotate(-8deg) scale(0) } 18% { transform: translate(-50%, -50%) rotate(-8deg) scale(1.15) } 28% { transform: translate(-50%, -50%) rotate(-8deg) scale(1) } 85% { opacity: 1 } 100% { opacity: 0; transform: translate(-50%, -70%) rotate(-8deg) scale(1) } }
+#tts-ui{position:fixed;top:8px;right:8px;z-index:9;display:flex;gap:6px;align-items:center;background:#0009;border-radius:999px;padding:4px 8px;font:700 11px 'Nunito';color:#ffe0f4}#tts-ui select{font:800 11px 'Nunito';background:#ff2d9b;color:#0b0014;border:0;border-radius:999px;padding:3px 6px}
+</style>
+</head>
+<body>
+<div id="tts-ui"><label for="tts">Stem</label><select id="tts" onchange="setTts(this.value)"><option value="ios">iPhone</option><option value="piper">Piper</option><option value="qwen">Qwen</option><option value="omnivoice">OmniVoice</option></select><span id="tts-ms"></span><label style="margin-left:4px"><input type="checkbox" id="ear" onchange="setEar(this.checked)"> 🎙 auto</label></div>
+<div id="boot" class="screen on">
+  <div class="script" style="font-size:34px;color:var(--cyan)">Elektronische</div>
+  <h1 style="font-size:52px;background:linear-gradient(180deg,#ffe600,#ff8a00 35%,#ff2d9b 70%,#ff4fd8);-webkit-background-clip:text;color:transparent;text-shadow:none">DROOMTELEFOON</h1>
+  <p class="note">Dit is dé telefoon. Leg hem op tafel, luid aan.</p>
+  <button class="big" onclick="boot()">ZET AAN</button>
+</div>
+
+<div id="idle" class="screen">
+  <div class="script">Droomtelefoon</div>
+  <div class="talker" id="i-talker" hidden></div>
+  <div class="clock" id="clock">--:--</div>
+  <img class="gif" id="gif" alt="" hidden onerror="this.hidden = true"><small class="giphy">Powered by GIPHY</small>
+  <p class="note" id="idle-note">Wachten op het spel…</p>
+</div>
+
+<div id="ring" class="screen">
+  <div class="hearts" aria-hidden="true"></div>
+  <div class="script">Droomtelefoon</div>
+  <div class="tag" id="r-tag">INKOMENDE OPROEP</div>
+  <div class="wrap"><div class="halo"></div><div class="face" id="r-face"></div><div class="badge" id="r-badge">#7</div></div>
+  <h1 id="r-title" style="margin-top:18px">GEHEIME AANBIDDER</h1>
+  <div style="font:800 20px 'Nunito';color:#ffe0f4;text-align:center">belt <span id="r-for" class="turnname"></span></div>
+  <p class="note" id="r-note"></p>
+  <div style="margin-top:auto;display:flex;gap:28px;align-items:center;justify-content:center">
+    <div style="text-align:center"><button class="round red" style="width:76px;height:76px" aria-label="Weigeren" onclick="act({type:'hangup'})"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.7a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.8.3 1.7.5 2.6.7A2 2 0 0 1 22 16.9z"/></svg></button><div id="r-decline" style="font:800 14px 'Nunito';margin-top:8px">Weigeren</div></div>
+    <div id="r-pick" style="text-align:center"><button class="round green" style="width:112px;height:112px" aria-label="Opnemen" onclick="act({type:'pickup'})"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.7a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.8.3 1.7.5 2.6.7A2 2 0 0 1 22 16.9z"/></svg></button><div style="font:800 16px 'Nunito';margin-top:8px">Opnemen</div></div>
+  </div>
+</div>
+
+<div id="dial" class="screen">
+  <div class="script">Droomtelefoon</div>
+  <div class="lcd" aria-live="polite"><b id="d-lcd">KIES 1-0</b><small id="d-name"></small></div>
+  <p class="note">Wie bel jij? Toets 0 is aanbidder 10. Paarse toetsen zijn al ontmaskerd.</p>
+  <div id="keys"></div>
+</div>
+
+<div id="call" class="screen">
+  <div class="hearts" aria-hidden="true"></div>
+  <div class="head"><div class="mini" id="c-face"></div><div><h2 id="c-title"></h2><small id="c-sub"></small></div><div class="timer" id="c-timer">0:00</div></div>
+  <div class="talker" id="c-talker" hidden></div>
+  <div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div id="log"></div>
+  <div id="task" hidden></div>
+  <div id="sug"></div>
+  <div class="inrow"><label for="msg" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Zeg iets</label><input id="msg" placeholder="Zeg iets…" autocomplete="off"><label id="cam" hidden aria-label="Selfie-modus: maak een selfie voor de aanbidder" title="Selfie-modus"><input type="file" accept="image/*" capture="user" hidden onchange="selfie(this)"></label><button id="mic" aria-label="Spreek" onclick="mic()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0b0014" stroke-width="2.4" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
+  <div class="acts"><button id="guess" onclick="guess()">IK WEET WIE JE BENT</button><button class="round red" style="width:58px;height:58px" aria-label="Ophangen" onclick="act({type:'hangup'})"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.7a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.8.3 1.7.5 2.6.7A2 2 0 0 1 22 16.9z"/></svg></button></div>
+</div>
+
+<div id="sticker" aria-live="polite"></div>
+<div id="result" class="screen"><div class="script">Droomtelefoon</div><h1 id="res-title"></h1><p class="note" id="res-text"></p></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const SIL = '<svg viewBox="0 0 60 60" fill="none" stroke="#2ef2ff" stroke-width="2" stroke-linecap="round"><circle cx="30" cy="20" r="11"/><path d="M8 56c2-14 10-21 22-21s20 7 22 21"/><path d="M24 33l6 8 6-8" stroke="#ff2d9b"/></svg>';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let state, audio, ringTimer, spoken = 0, callKey = null, voices = [], lastGreet = 0;
+const show = id => document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+async function act(body) { const r = await fetch('/action', { method: 'POST', body: JSON.stringify(body) }); if (!r.ok) alert((await r.json()).error); return r.ok ? r.json() : null; }
+
+// ---- audio: Nokia tune, synthesised ----
+// ---- ringtones: 1990s RTTTL (the Nokia text format), public-domain melodies and classic phone signals ----
+const RINGTONES = [
+  'Nokia-tune:d=4,o=5,b=225:8e6,8d6,f#,g#,8c#6,8b,d,e,8b,8a,c#,e,2a',
+  'Für Elise:d=8,o=5,b=125:32p,e6,d#6,e6,d#6,e6,b,d6,c6,4a.,32p,c,e,a,4b.,32p,e,g#,b,4c.6,32p,e,e6,d#6,e6,d#6,e6,b,d6,c6,4a.,32p,c,e,a,4b.,32p,d,c6,b,2a',
+  'Ode an die Freude:d=4,o=5,b=140:e,e,f,g,g,f,e,d,c,c,d,e,e.,8d,2d,e,e,f,g,g,f,e,d,c,c,d,e,d.,8c,2c',
+  'The Entertainer:d=4,o=5,b=140:8d,8d#,8e,c6,8e,c6,8e,2c.6,8c6,8d6,8d#6,8e6,8c6,8d6,e6,8b,d6,2c6,p,8d,8d#,8e,c6,8e,c6,8e,2c.6,8p,8a,8g,8f#,8a,8c6,e6,8d6,8c6,8a,2d6',
+  'Altijd is Kortjakje ziek:d=4,o=5,b=160:c,c,g,g,a,a,2g,f,f,e,e,d,d,2c',
+  'Jingle Bells:d=8,o=5,b=200:e,e,4e,e,e,4e,e,g,c.,16d,2e,f,f,f.,16f,f,e,e,16e,16e,e,d,d,e,4d,4g',
+  'Vader Jacob:d=4,o=5,b=160:c,d,e,c,c,d,e,c,e,f,2g,e,f,2g,8g,8a,8g,8f,e,c,8g,8a,8g,8f,e,c,c,g4,2c,c,g4,2c',
+  'Eine kleine Nachtmusik:d=4,o=5,b=140:g,8p,8d,g,8p,8d,8g,8d,8g,8b,2d6,8p,c6,8p,8a,c6,8p,8a,8c6,8a,8f#,8a,2d',
+  'In de hal van de bergkoning:d=8,o=5,b=180:b4,c#,d,e,f#,d,4f#,f,c#,4f,e,c,4e,b4,c#,d,e,f#,d,f#,b,a,f#,d,f#,2a',
+  'Can-can:d=4,o=5,b=200:c,8d,8f,8e,8d,g,g,g,8a,8e,f,8d,g,g,g,8a,8e,f,8d,8g,8f,8e,8d,c',
+  'Wilhelm Tell:d=16,o=5,b=140:e,e,8e,e,e,8e,e,e,8a,8b,8c6,8p,e,e,8e,e,e,8e,e,e,8a,8b,4c6',
+  'Turkse mars:d=16,o=5,b=120:b,a,g#,a,8c6,8p,d6,c6,b,c6,8e6,8p,f6,e6,d#6,e6,b6,a6,g#6,a6,b6,a6,g#6,a6,4c7',
+  'La Cucaracha:d=8,o=5,b=200:c,c,c,4f,4a,c,c,c,4f,4a,4p,f,f,e,e,d,d,2c',
+  'Happy Birthday:d=4,o=5,b=125:8g.,16g,a,g,c6,2b,8g.,16g,a,g,d6,2c6',
+  'Wiegelied van Brahms:d=4,o=5,b=110:8e,8e,g.,8e,8e,g.,8e,8g,c6,b.,8a,a,g',
+  'Ochtendstemming:d=8,o=5,b=100:g,e,d,c,d,e,g,e,d,c,d,16e,16d,16e,16d,e,g,e,g,a,e,a,g,e,d,4c',
+  'Alle eendjes zwemmen in het water:d=4,o=5,b=180:c,d,e,f,2g,2g,a,a,a,a,1g,a,a,a,a,1g,f,f,f,f,2e,2e,d,d,d,d,1c',
+  'Old MacDonald:d=4,o=5,b=160:g,g,g,d,e,e,2d,b,b,a,a,2g',
+  'Oude telefoonbel:d=32,o=6,b=120:e,c,e,c,e,c,e,c,e,c,e,c,e,c,e,c,4p,e,c,e,c,e,c,e,c,e,c,e,c,e,c,e,c',
+  'Piep piep:d=8,o=6,b=180:a,p,a,p,a,4p,a,p,a,p,a',
+];
+const SEMI = { c: 0, 'c#': 1, d: 2, 'd#': 3, e: 4, f: 5, 'f#': 6, g: 7, 'g#': 8, a: 9, 'a#': 10, b: 11, h: 11 };
+function parseRtttl(str) { // → { name, notes: [[freqHz or 0 for a rest, ms], ...] }
+  const [name, defs, body] = str.split(':');
+  const def = { d: 4, o: 6, b: 63 };
+  defs.split(',').forEach(x => { const [k, v] = x.trim().split('='); def[k] = Number(v); });
+  const whole = 240000 / def.b;
+  const notes = body.split(',').map(n => {
+    const m = n.trim().toLowerCase().match(/^(\d+)?([a-hp]#?)(\.)?(\d)?(\.)?$/); if (!m) return null;
+    const ms = (whole / (m[1] ? Number(m[1]) : def.d)) * (m[3] || m[5] ? 1.5 : 1);
+    if (m[2] === 'p') return [0, ms];
+    return [440 * 2 ** ((12 * ((m[4] ? Number(m[4]) : def.o) + 1) + SEMI[m[2]] - 69) / 12), ms];
+  }).filter(Boolean);
+  return { name, notes };
+}
+// Every call takes the next tune from a shuffled deck, so a ringtone only comes back after all twenty have played.
+function nextRingtone() {
+  let deck = []; try { deck = JSON.parse(localStorage.getItem('ringdeck') || '[]'); } catch {}
+  if (!deck.length) deck = RINGTONES.map((_, i) => i).sort(() => Math.random() - .5);
+  const i = deck.shift(); try { localStorage.setItem('ringdeck', JSON.stringify(deck)); } catch {}
+  return parseRtttl(RINGTONES[i]);
+}
+function playTune(tune) { // square wave, slightly staccato: the sound of a 1990s piezo speaker
+  let t = audio.currentTime + .05; const t0 = t;
+  for (const [f, ms] of tune.notes) {
+    const d = ms / 1000;
+    if (f) { const o = audio.createOscillator(), g = audio.createGain(); o.type = 'square'; o.frequency.value = f; g.gain.setValueAtTime(.055, t); g.gain.setValueAtTime(.055, t + d * .85); g.gain.linearRampToValueAtTime(0, t + d * .9); o.connect(g).connect(audio.destination); o.start(t); o.stop(t + d); }
+    t += d;
+  }
+  return (t - t0) * 1000 + 1300;
+}
+let ringTune = null;
+function startRing() { if (ringTimer) return; ringTune = nextRingtone(); const loop = () => { ringTimer = setTimeout(loop, playTune(ringTune)); navigator.vibrate?.([400, 200, 400]); }; loop(); }
+function startRingback() { // Belgian ringback: 425 Hz, 1 s on, 3 s off
+  if (ringTimer) return;
+  const loop = () => { const t = audio.currentTime, o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 425; g.gain.setValueAtTime(.08, t); g.gain.setValueAtTime(.08, t + .98); g.gain.linearRampToValueAtTime(0, t + 1); o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 1); ringTimer = setTimeout(loop, 4000); };
+  loop();
+}
+function stopRing() { clearTimeout(ringTimer); ringTimer = null; }
+// Real touch-tone (DTMF) pairs, like the 1992 phone.
+const DTMF = { 1: [697, 1209], 2: [697, 1336], 3: [697, 1477], 4: [770, 1209], 5: [770, 1336], 6: [770, 1477], 7: [852, 1209], 8: [852, 1336], 9: [852, 1477], 10: [941, 1336] };
+function dtmf(n) {
+  const t = audio.currentTime, g = audio.createGain(); g.gain.setValueAtTime(.12, t); g.gain.setValueAtTime(.12, t + .16); g.gain.linearRampToValueAtTime(0, t + .19); g.connect(audio.destination);
+  for (const f of DTMF[n]) { const o = audio.createOscillator(); o.frequency.value = f; o.connect(g); o.start(t); o.stop(t + .2); }
+}
+let dialing = false;
+function dial(n, btn) {
+  if (dialing) return; dialing = true;
+  dtmf(n); btn.classList.add('press'); $('d-lcd').textContent = `BEL #${n}`;
+  setTimeout(async () => { await act({ type: 'dial', n }); dialing = false; }, 450);
+}
+function beep() { const t = audio.currentTime; [[880, 0], [1175, .12]].forEach(([f, d]) => { const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = f; g.gain.setValueAtTime(.1, t + d); g.gain.exponentialRampToValueAtTime(.001, t + d + .25); o.connect(g).connect(audio.destination); o.start(t + d); o.stop(t + d + .3); }); }
+
+// ---- voice ----
+function loadVoices() { voices = speechSynthesis.getVoices().filter(v => /^nl/i.test(v.lang)); }
+// ---- one voice per character: Dutch voices on this device (enhanced/premium first, Flemish first),
+// spread over pitch and rate by the character's slot. Women get women's voices, men get men's.
+const ENH = v => /enhanced|premium|verbeterd/i.test(`${v.name} ${v.voiceURI}`);
+const FEM = /ellen|claire|fleur|lotte|sanne|anna|female|vrouw/i, MAS = /xander|daan|luc|bram|\bmale\b|\bman\b/i;
+function voicePool(g) {
+  const best = {};
+  for (const v of voices.filter(v => (g === 'f' ? FEM : MAS).test(v.name)).sort((a, b) => ENH(b) - ENH(a))) {
+    const k = v.name.replace(/\(.*\)/, '').trim().toLowerCase(); best[k] = best[k] || v; // one per persona, the best version
+  }
+  const pool = Object.values(best).sort((a, b) => (b.lang === 'nl-BE') - (a.lang === 'nl-BE'));
+  return pool.length ? pool : voices;
+}
+const PITCH = { f: [1, 1.14, 0.9, 1.28, 0.8, 1.2, 1.06, 0.95, 1.36, 0.86], m: [1, 0.86, 1.12, 0.76, 1.22, 0.93, 0.68, 1.06, 0.82, 1.17] };
+const RATE = [1, 0.93, 1.07, 0.97, 1.03];
+function voiceSettings(v) {
+  const g = v?.gender === 'f' ? 'f' : 'm', pool = voicePool(g);
+  if (!Number.isInteger(v?.slot)) return { voice: pool[0] || null, pitch: v?.pitch || 1, rate: v?.rate || 1 };
+  const k = Math.floor(v.slot / Math.max(1, pool.length));
+  return { voice: pool[v.slot % Math.max(1, pool.length)] || null, pitch: PITCH[g][k % 10], rate: RATE[Math.floor(k / 10) % 5] };
+}
+let speaking = false, mouthKick = 0;
+// ---- voice engine picker: iPhone voices, or the Mac voice server (voice_server.py: Piper / Qwen / OmniVoice) through /tts ----
+// The server streams raw PCM while it renders; each chunk is scheduled right after the previous one on the Web Audio clock,
+// so the character starts talking at the first chunk. The badge shows time to first sound and when the line was fully rendered.
+let tts = localStorage.getItem('tts') || 'ios', ctl = null, srcs = [], kick = 0, endTimer = 0;
+function setTts(v) { tts = v; try { localStorage.setItem('tts', v); } catch {} $('tts').value = v; $('tts-ms').textContent = ''; }
+function stopPlayer() { if (ctl) ctl.abort(); ctl = null; for (const s of srcs) { try { s.stop(); } catch {} } srcs = []; clearInterval(kick); clearTimeout(endTimer); speaking = false; $('wave').classList.remove('on'); }
+async function speakRemote(text, v) {
+  const c = ctl = new AbortController(), t0 = performance.now(), q = new URLSearchParams({ engine: tts, text, g: v?.gender === 'f' ? 'f' : 'm', slot: Number.isInteger(v?.slot) ? v.slot : 0 });
+  $('tts-ms').textContent = '…';
+  try {
+    if (audio.state === 'suspended') await audio.resume();
+    const r = await fetch('/tts?' + q, { signal: c.signal }); if (!r.ok) throw new Error(await r.text());
+    const sr = +r.headers.get('x-sample-rate') || 24000, reader = r.body.getReader(), MIN = 4096 * 2; // bytes: ~0.17 s of audio per scheduled buffer
+    let carry = new Uint8Array(0), at = 0, first = 0;
+    const play = bytes => { // 16-bit little-endian mono → one AudioBuffer right after the previous one
+      const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.length >> 1), buf = audio.createBuffer(1, i16.length, sr), ch = buf.getChannelData(0);
+      for (let i = 0; i < i16.length; i++) ch[i] = i16[i] / 32768;
+      const s = audio.createBufferSource(); s.buffer = buf; s.connect(audio.destination);
+      at = Math.max(at, audio.currentTime + 0.03); s.start(at); at += buf.duration; srcs.push(s);
+      if (!first) { first = performance.now() - t0; speaking = true; $('wave').classList.add('on'); kick = setInterval(() => { mouthKick = 1; }, 220); $('tts-ms').textContent = `eerste geluid ${Math.round(first)} ms`; }
+    };
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (value) { const b = new Uint8Array(carry.length + value.length); b.set(carry); b.set(value, carry.length); carry = b; }
+      const n = (done || carry.length >= MIN) ? carry.length & ~1 : 0;
+      if (n) { play(carry.subarray(0, n)); carry = carry.slice(n); }
+      if (done) break;
+    }
+    if (!first) throw new Error('geen audio');
+    $('tts-ms').textContent = `eerste geluid ${Math.round(first)} ms · klaar na ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+    endTimer = setTimeout(() => { if (ctl === c) { speaking = false; $('wave').classList.remove('on'); clearInterval(kick); srcs = []; lineEnded(); } }, Math.max(0, (at - audio.currentTime) * 1000));
+  } catch (e) { if (e.name !== 'AbortError') { $('tts-ms').textContent = 'fout'; console.warn('tts', e); lineEnded(); } }
+}
+function speak(text, v) {
+  speechSynthesis.cancel(); stopPlayer(); hush();
+  if (tts !== 'ios') return speakRemote(text, v);
+  const u = new SpeechSynthesisUtterance(text), vs = voiceSettings(v);
+  u.lang = vs.voice?.lang || 'nl-BE'; u.voice = vs.voice; u.pitch = vs.pitch; u.rate = vs.rate;
+  u.onstart = () => { speaking = true; $('wave').classList.add('on'); };
+  u.onend = u.onerror = () => { speaking = false; $('wave').classList.remove('on'); lineEnded(); };
+  u.onboundary = () => { mouthKick = 1; }; // each word opens the mouth wide
+  speechSynthesis.speak(u);
+}
+// ---- talking face ----
+function talker(el, img, m) {
+  if (!img || !m) { el.hidden = true; el._k = null; return; }
+  el.hidden = false; if (el._k === img) return; el._k = img;
+  const S = 170, cy = Math.max(0, m.y - m.h); // ponytail: Vision's box sits on or just under the lips, so hinge a box higher and open wide; it surely covers the mouth
+  const jx = Math.max(0, m.x - m.w * 0.35), jw = Math.min(1 - jx - .001, m.w * 1.7), jh = Math.min(1 - cy - .001, m.chin + 0.05 - cy);
+  el.style.setProperty('--img', `url('${img}')`); el.style.setProperty('--drop', `${Math.max(10, m.h * 3 * S)}px`);
+  const pct = v => `${(v * 100).toFixed(2)}%`;
+  el.innerHTML = `<div class="t-base"></div><div class="t-mouth" style="left:${pct(Math.max(0, m.x - m.w * 0.1))};top:${pct(cy)};width:${pct(m.w * 1.2)}"></div>`
+    + `<div class="t-jaw" style="left:${pct(jx)};top:${pct(cy)};width:${pct(jw)};height:${pct(jh)};background-size:${pct(1 / jw)} ${pct(1 / jh)};background-position:${pct(jx / (1 - jw))} ${pct(cy / (1 - jh))}"></div>`;
+}
+// love GIFs from giphy.com/search/love (G/PG only) while the phone waits for a call; hotlinked from Giphy, so they need internet
+const GIFS = '4N1wOi78ZGzSB6H7vK Zl7u48zLVFgLpRwq6f xR5cPyPoL5HVXSphqA IarkL8sxk3LJ6LLFv8 LbC9yf16pIS74lXTDc PBbFIL4bF8uS4 bk5vxWFSZXicJHijQ5 jzkiCRT0c75fYr5auW FDh2DGsNR4d4TFv890 l4pTdcifPZLpDjL1e x28cIQSn19Tbi uJxy0TMmVI9hJbFFkX MKuEHA4bHXUhwXhovI KvIgzgfR4oy7S4hIWn l4Ki4biBSwhjyrS48 9TB6BcQ9fXruEzYtXn As3pqYwhNl3EiKKMCf N4sYso1id2fGZoTt2t 5j4MSItGgMlOnFzIK4 3PtzgNmZ0t2Nd7aOvj l41JWw65TcBGjPpRK nM2ARuUlLtB0t3OKHm wTt2nMw9Pn4LUfW1Wq gDfteqLchLcRTtjAD7 mnR01wfMUTo9hGXUvl WT9ZmoD3VgFRmiTmPS j0qLWsg1zE7xTW0pwm Hm9zQZRc3kY82xj0ZQ VlyK0nI9Am9EVS9DdP HIBMHV1tQrRIV50mGv pNpsr4aMPloo0xGN5B tIGjcWaxuoaXtXjwI6 IbOMfEKXjF5pzzqm7P YO9kvJkrc1JJKDYOUk Z98T4K4zUlAKEvM0Po uw9aiTUH1VFCPsd8d8 ujm9brbzXi4A79PGYt BzlAaUC1ORvzjek2G3 vzetPyYkq9qHpo8yYr AbZMp6oqhReM9PLUJl 9uWDgh9xYvKJiC6KMK 88mfOaMTq5SjJQoafr'.split(' ');
+setInterval(() => { if ($('idle').classList.contains('on')) { const g = $('gif'); g.src = `https://media.giphy.com/media/${GIFS[Math.random() * GIFS.length | 0]}/200.webp`; g.hidden = false; } }, 5000);
+let mouthOpen = 0, nextFlap = 0, flapTarget = 0;
+(function animateMouths(t) {
+  if (speaking && t > nextFlap) { flapTarget = .15 + Math.random() * .7; nextFlap = t + 70 + Math.random() * 60; } // syllable-ish rhythm
+  const target = speaking ? Math.max(flapTarget, mouthKick) : 0; mouthKick *= .8;
+  mouthOpen += (target - mouthOpen) * .45;
+  for (const el of document.querySelectorAll('.talker:not([hidden])')) el.style.setProperty('--open', mouthOpen.toFixed(3));
+  requestAnimationFrame(animateMouths);
+})(0);
+function boot() {
+  // iPhone: Web Audio is muted by the silent switch unless the page plays as "media". Both tricks below make the ringtone audible.
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+  const keep = new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=='); keep.loop = true; keep.play().catch(() => {});
+  // keep the screen on, otherwise the phone sleeps on the table and stops ringing
+  const lock = () => navigator.wakeLock?.request('screen').catch(() => {}); lock(); document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && lock());
+  audio = new AudioContext(); loadVoices(); setTts(tts); setEar(ear); speechSynthesis.onvoiceschanged = loadVoices;
+  speak('Droomtelefoon staat aan.', { gender: 'f' });
+  show('idle'); setInterval(() => { $('clock').textContent = new Date().toTimeString().slice(0, 5); }, 1000);
+  new EventSource('/events?role=phone').onmessage = e => render(JSON.parse(e.data));
+}
+
+// ---- speech input (Safari / Chrome) ----
+let rec;
+function mic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return alert('Geen spraakherkenning op dit toestel, typ maar.');
+  if (rec) { rec.stop(); return; }
+  rec = new SR(); rec.lang = 'nl-BE'; $('mic').classList.add('on');
+  rec.onresult = e => { $('msg').value = e.results[0][0].transcript; send(); };
+  rec.onend = () => { rec = null; $('mic').classList.remove('on'); };
+  rec.start();
+}
+// ---- hands-free admirer calls: after every line the phone listens, sends what it hears, and keeps quiet while the admirer talks.
+// Only in admirer calls (co-player calls stay typed/tapped), not while a task is open, and only on https (Safari refuses the mic on http).
+let ear = localStorage.getItem('handsfree') !== 'off', awaiting = false, listenTimer = 0, micBlocked = false; // ponytail: new key, so an old automatic 'off' from a refused mic is forgotten
+function setEar(on) { ear = on; micBlocked = false; try { localStorage.setItem('handsfree', on ? 'on' : 'off'); } catch {} $('ear').checked = on; if (!on) hush(); }
+function hush() { if (!rec) return; rec.onend = null; try { rec.abort(); } catch {} rec = null; $('mic').classList.remove('on'); $('msg').placeholder = 'Zeg iets…'; }
+function inAdmirerCall() { const c = state?.pub?.call; return !!c && !state.pub.paused && c.who === 'admirer' && !['ringing', 'dial', 'ended'].includes(c.state) && !(c.task && c.task.phase !== 'done'); }
+function lineEnded() { clearTimeout(listenTimer); if (ear && !micBlocked && !awaiting && !rec && inAdmirerCall()) listenTimer = setTimeout(listen, 300); }
+function listen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR || rec || speaking || !inAdmirerCall()) return;
+  rec = new SR(); rec.lang = 'nl-BE'; rec.interimResults = true; $('mic').classList.add('on'); $('msg').placeholder = 'Ik luister…';
+  rec.onresult = e => { let t = ''; for (const r of e.results) t += r[0].transcript; $('msg').value = t; };
+  rec.onerror = e => { if (/not-allowed|service-not-allowed/.test(e.error)) micBlocked = true; }; // stop the loop for now, keep 🎙 auto on
+  rec.onend = () => { rec = null; $('mic').classList.remove('on'); $('msg').placeholder = !micBlocked ? 'Zeg iets…' : isSecureContext ? 'Microfoon geweigerd: sta hem toe in je browser' : 'Geen microfoon op http: open de https-link'; if ($('msg').value.trim()) send(); else lineEnded(); };
+  try { rec.start(); } catch { rec = null; }
+}
+const FILLERS = ['Hmm…', 'Haha…', 'Euh…', 'Ooh…', 'Tja…'];
+async function send() {
+  const t = $('msg').value.trim(); if (!t) return; $('msg').value = ''; hush(); awaiting = true;
+  speak(FILLERS[Math.floor(Math.random() * FILLERS.length)], state.call?.voice); // ponytail: masks the ~3 s the admirer needs to think
+  await act({ type: 'say', text: t });
+}
+$('msg').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+async function guess() {
+  const c = state.pub.call; const name = prompt(`Wie is aanbidder #${c.n}? Typ de naam:`); if (!name) return;
+  const r = await act({ type: 'guess', playerId: c.playerId, n: c.n, name, via: 'call' });
+  if (r) { speak(r.correct ? `Ja... je hebt me door. Het is ${r.answer}.` : 'Haha, nee. Zo makkelijk ben ik niet. Dag!', state.call?.voice); sticker(r.correct ? `+${r.pts} GERADEN` : 'FOUT · −2', r.correct ? 'gold' : 'bad'); }
+}
+
+
+// ---- icons (one candy set, inline) ----
+const ICON = {
+  heart: '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.3 5.3 3.2 1.7-1.9 3.1-3.2 5.3-3.2 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l3.8-.9L19 7.9a2.1 2.1 0 0 0-3-3L3.9 17.2 3 21z"/><path d="M14 6l4 4"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  question: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M8.5 9a3.5 3.5 0 1 1 5 3.2c-1 .6-1.5 1.3-1.5 2.3"/><circle cx="12" cy="18.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  lie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-4 5-6 9-6s7 2 9 6c-2 4-5 6-9 6s-7-2-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>',
+  act: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17l-6.1 3.5 1.5-6.8L2.2 9l6.9-.7z"/></svg>',
+  thumb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H3v-9h4zm0 0l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 16.8 20H7"/></svg>',
+};
+$('cam').insertAdjacentHTML('afterbegin', ICON.camera.replace('<svg', '<svg style="color:#fff"'));
+document.querySelectorAll('.hearts').forEach(h => { h.innerHTML = Array.from({ length: 9 }, (_, i) => `<i style="--x:${8 + i * 10 + Math.random() * 6}%;--s:${14 + Math.random() * 18}px;--d:${9 + Math.random() * 8}s;--dl:${-Math.random() * 14}s;--c:${['#ff2d9b', '#ff9ad5', '#2ef2ff', '#ffe600', '#b4ff3c'][i % 5]}">${ICON.heart}</i>`).join(''); });
+
+// ---- stickers: little pops for +1 JA, +1 OPDRACHT, FOUT ----
+function sticker(text, cls = '') { const el = $('sticker'); el.textContent = text; el.className = ''; void el.offsetWidth; el.className = `on ${cls}`; beep(); }
+
+// ---- tasks ----
+const TASK_UI = { ask: ['WEDERVRAAG', 'question'], draw: ['TEKEN VOOR MIJ', 'pencil'], selfie: ['SELFIE-MODUS', 'camera'], lie: ['LEUGENDETECTOR', 'lie'], act: ['DOE-OPDRACHT', 'act'] };
+let taskKey = null, pad = null, drawing = false, selfieData = null;
+function renderTask(c) {
+  const t = c.task, el = $('task');
+  const key = t && t.phase !== 'done' ? `${c.n}-${t.kind}-${t.phase}-${c.playerId}` : null;
+  $('cam').classList.toggle('hot', !!t && t.kind === 'selfie' && t.phase === 'open');
+  if (!key) { el.hidden = true; taskKey = null; return; }
+  if (key === taskKey) { if (t.phase === 'voting') { const v = el.querySelector('.vote'); if (v) v.innerHTML = `${t.votes} 👍<small>de kamer stemt… nog ${Math.max(0, Math.ceil((t.voteEnds - Date.now()) / 1000))} s</small>`; } return; }
+  taskKey = key; el.hidden = false; selfieData = null;
+  const [title, icon] = TASK_UI[t.kind], skip = `<button class="ghost" onclick="act({type:'pass'})">Sla over</button>`;
+  let body = '';
+  if (t.kind === 'ask') body = `<div class="opts">${t.options.map(o => `<button data-q="${esc(o)}" onclick="$('msg').value=this.dataset.q;send()">${ICON.heart.replace('<svg', '<svg style="width:18px;height:18px;fill:#ff2d9b;flex-shrink:0"')}${esc(o)}</button>`).join('')}</div><div class="row"><span style="flex:1;font:700 13px 'Nunito';align-self:center">…of typ je eigen antwoord hieronder.</span>${skip}</div>`;
+  if (t.kind === 'lie') body = `<div class="opts">${t.options.map((o, i) => `<button onclick="act({type:'pick',i:${i}})"><b>${i + 1}</b>${esc(o)}</button>`).join('')}</div><div class="row"><span style="flex:1;font:700 13px 'Nunito';align-self:center">Twee zijn waar, één is gelogen. Tik de leugen.</span>${skip}</div>`;
+  if (t.kind === 'draw') body = `<canvas id="pad" width="512" height="384" aria-label="Tekenvlak"></canvas><div class="row"><button class="ghost" onclick="padClear()">Wis</button><button class="go" onclick="sendPad()">${ICON.pencil}Verstuur tekening</button>${skip}</div>`;
+  if (t.kind === 'selfie') body = `<img class="prev" id="prev" hidden alt="jouw selfie"><div class="row"><label class="go" for="selfie-in">${ICON.camera}<span id="selfie-lbl">Maak selfie</span></label><input id="selfie-in" type="file" accept="image/*" capture="user" hidden onchange="selfie(this)"><button class="go" id="selfie-send" hidden onclick="sendSelfie()">Verstuur</button>${skip}</div>`;
+  if (t.kind === 'act') body = t.phase === 'voting' ? `<div class="vote">${t.votes} 👍<small>de kamer stemt…</small></div>` : `<div class="row"><button class="go" onclick="act({type:'done'})">${ICON.thumb}Gedaan! Laat de kamer stemmen</button>${skip}</div>`;
+  el.innerHTML = `<div class="tt">${ICON[icon]}${title}</div><div class="tp">${esc(t.prompt)}</div>${body}`;
+  if (t.kind === 'draw') padInit();
+  if (t.kind === 'lie' && t.phase === 'open') setTimeout(() => speak(t.options.map((o, i) => `${['Eén', 'Twee', 'Drie'][i]}: ${o}.`).join(' '), state.call?.voice), 3500);
+  $('log').scrollTop = 1e6;
+}
+function padInit() {
+  pad = $('pad'); const ctx = pad.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 512, 384); ctx.lineCap = ctx.lineJoin = 'round'; ctx.lineWidth = 14; ctx.strokeStyle = '#ff2d9b';
+  const pos = e => { const r = pad.getBoundingClientRect(), p = e.touches ? e.touches[0] : e; return [(p.clientX - r.left) * 512 / r.width, (p.clientY - r.top) * 384 / r.height]; };
+  const down = e => { drawing = true; const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .1, y); ctx.stroke(); e.preventDefault(); };
+  const move = e => { if (!drawing) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); e.preventDefault(); };
+  const up = () => { drawing = false; };
+  pad.addEventListener('pointerdown', down); pad.addEventListener('pointermove', move); pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up); pad.addEventListener('pointerleave', up);
+}
+function padClear() { if (pad) padInit(); }
+async function sendPad() { if (!pad) return; const t = $('task'); t.style.opacity = .5; await act({ type: 'image', image: pad.toDataURL('image/png') }); t.style.opacity = ''; }
+function selfie(input) { // downscale on the phone (max 720 px) so the upload stays small; sends straight away unless a selfie task waits for "Verstuur"
+  const f = input.files[0]; input.value = ''; if (!f) return;
+  const img = new Image(); img.onload = () => {
+    const k = Math.min(1, 720 / Math.max(img.width, img.height)), cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(img.src);
+    selfieData = cv.toDataURL('image/jpeg', .82);
+    const prev = $('prev'); if (prev && state.pub.call?.task?.kind === 'selfie') { prev.src = selfieData; prev.hidden = false; $('selfie-send').hidden = false; $('selfie-lbl').textContent = 'Opnieuw'; }
+    else sendSelfie();
+  };
+  img.src = URL.createObjectURL(f);
+}
+async function sendSelfie() { if (!selfieData) return; const d = selfieData; selfieData = null; speak('Ooh, laat eens zien…', state.call?.voice); await act({ type: 'image', image: d }); }
+
+function render(v) {
+  state = v; const s = v.pub, c = s.call, d = v.call;
+  if (s.paused) { stopRing(); hush(); show('idle'); $('idle-note').textContent = '⏸ PAUZE · de klok staat stil'; talker($('i-talker'), null); return; } // the current line may finish; nothing rings or listens
+  if (s.phase === 'finale') { stopRing(); show('result'); $('res-title').textContent = 'EINDE'; $('res-text').textContent = 'Kijk naar het scherm voor de eindstand.'; return; }
+  if (!c) {
+    stopRing(); show('idle'); callKey = null;
+    const g = s.greet; // lobby sound check: each co-player says hello to their player
+    if (g && g.t > lastGreet) { lastGreet = g.t; if (Date.now() - g.t < 15000) { beep(); setTimeout(() => speak(g.text, g.voice), 400); } }
+    $('idle-note').textContent = g ? `${g.from} aan ${g.to}: “${g.text}”` : s.phase === 'lobby' ? 'Wachten tot het spel start…' : 'Even pauze. Kijk naar het scherm.';
+    const gp = g && s.players.find(p => p.name === g.to); talker($('i-talker'), gp?.co.avatar, gp?.co.mouth);
+    return;
+  }
+  const key = `${c.playerId}-${c.who}-${c.n}-${s.round}-${s.turnIndex}`;
+  if (key !== callKey) { callKey = key; spoken = 0; }
+  const who = c.who === 'co' ? d.callerName : `Aanbidder #${c.n}`;
+  const face = c.who === 'co' && s.players.find(p => p.id === c.playerId).co.avatar ? `<img src="${s.players.find(p => p.id === c.playerId).co.avatar}" alt="">` : SIL;
+
+  if (c.state === 'ringing') {
+    show('ring');
+    $('r-face').innerHTML = face; $('r-badge').textContent = c.who === 'co' ? '★' : `#${c.n}`; $('r-badge').style.display = '';
+    $('r-title').textContent = c.who === 'co' ? d.callerName.toUpperCase() : 'GEHEIME AANBIDDER'; $('r-for').textContent = d.playerName;
+    $('r-pick').style.display = c.outgoing ? 'none' : ''; $('r-decline').textContent = c.outgoing ? 'Ophangen' : 'Weigeren';
+    if (c.outgoing) {
+      startRingback(); $('r-tag').textContent = 'UITGAANDE OPROEP';
+      $('r-for').parentNode.firstChild.textContent = ''; $('r-for').textContent = `${d.playerName} belt…`;
+      $('r-note').textContent = 'Gaat over… even geduld.';
+      return;
+    }
+    startRing(); $('r-tag').textContent = ringTune ? `INKOMENDE OPROEP  ♪ ${ringTune.name.toUpperCase()}` : 'INKOMENDE OPROEP'; $('r-for').parentNode.firstChild.textContent = 'belt ';
+    const left = Math.ceil((c.cardsUntil - Date.now()) / 1000);
+    $('r-note').textContent = `Geef de telefoon aan ${d.playerName} of tik OPNEMEN op je gsm. ` + (left > 0 ? `Anderen: speel nu je kaart. Nog ${left} s.` : 'Neem op!');
+    return;
+  }
+  stopRing();
+  if (c.state === 'dial') {
+    if (!dialing) $('d-lcd').textContent = 'KIES 1-0';
+    show('dial'); $('d-name').textContent = `${d.playerName.toUpperCase()} BELT`;
+    const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, null, 10, null].map(n => n === null ? '<button class="gap" tabindex="-1" aria-hidden="true"></button>'
+      : `<button ${d.lockedSlots.includes(n) && !dialing ? '' : 'disabled'} aria-label="Bel aanbidder ${n}" onclick="dial(${n}, this)">${n === 10 ? '0<small>10</small>' : n}</button>`).join('');
+    if ($('keys')._h !== keys) { $('keys')._h = keys; $('keys').innerHTML = keys; }
+    return;
+  }
+  if (c.state === 'ended') { show('result'); $('res-title').textContent = (c.result || 'Opgehangen').toUpperCase(); $('res-text').textContent = 'Geef de Droomtelefoon terug naar het midden.'; return; }
+
+  // active
+  show('call');
+  $('c-face').innerHTML = face; $('c-title').textContent = who.toUpperCase();
+  const cp = s.players.find(p => p.id === c.playerId); talker($('c-talker'), c.who === 'co' ? cp?.co.avatar : null, cp?.co.mouth);
+  const sub = `in gesprek met` + (c.who === 'co' ? '' : ` · hint-niveau ${c.level}`) + (s.ai ? '' : ' · DEMO zonder Claude') + `<b class="turnname">${esc(d.playerName)}</b>`;
+  if ($('c-sub')._h !== sub) { $('c-sub')._h = sub; $('c-sub').innerHTML = sub; }
+  $('c-timer').textContent = c.paused ? 'PAUZE' : fmt(c.endsAt - Date.now()); $('c-timer').classList.toggle('paused', !!c.paused);
+  renderTask(c);
+  const h = d.history;
+  const waiting = !h.length || h[h.length - 1].role === 'user';
+  $('log').innerHTML = h.map(m => `<div class="b ${m.role === 'user' ? 'u' : 'a'}">${esc(m.text)}${m.ja ? '<span class="ja">+1 JA</span>' : ''}</div>`).join('') + (waiting ? `<div class="b a wait">…</div>` : '');
+  $('log').scrollTop = 1e6;
+  $('sug').innerHTML = (c.task && c.task.phase !== 'done' ? [] : (d.suggestions || [])).map(q => `<button data-q="${esc(q)}" onclick="$('msg').value=this.dataset.q;send()">${esc(q)}</button>`).join('');
+  $('guess').style.display = c.who === 'co' ? 'none' : '';
+  $('sug').hidden = $('msg').closest('.inrow').hidden = c.who === 'co'; // a helper only gives a tip: nothing to ask or type (Tim 2026-10-31)
+  const aMsgs = h.filter(m => m.role === 'assistant');
+  if (aMsgs.length > spoken) { const last = aMsgs[aMsgs.length - 1]; awaiting = false; speak(last.text, d.voice); if (last.ja) sticker('+1 JA'); spoken = aMsgs.length; }
+  const f = s.feed[0]; // the news line tells us how the task went
+  if (f && f.t > lastFeed) { lastFeed = f.t; if (/deed de opdracht/.test(f.text)) sticker('+1 OPDRACHT', 'gold'); else if (/faalde|niet goed genoeg/.test(f.text)) sticker('HELAAS', 'bad'); }
+}
+let lastFeed = Date.now();
+setInterval(() => { if (state && state.pub.call) render(state); }, 500);
+</script>
+</body>
+</html>

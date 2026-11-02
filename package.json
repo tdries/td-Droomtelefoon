@@ -1,0 +1,22 @@
+{
+  "name": "td-droomtelefoon",
+  "version": "1.0.0",
+  "description": "Droomtelefoon: an AI party game where secret celebrity admirers call you. Inspired by the 1991 board game Dream Phone.",
+  "main": "server.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "exceljs": "^4.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

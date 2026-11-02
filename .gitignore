@@ -1,0 +1,23 @@
+# --- private game data: never commit (names, ages, crushes of real people) ---
+players.json
+admirers.json
+spelers.xlsx
+teamgenoten-fotos.png
+avatars/*
+!avatars/.gitkeep
+
+# --- secrets ---
+.env
+.secret
+certs/
+
+# --- big or machine-specific ---
+node_modules/
+.runtime/
+.venv-voice/
+voices/piper/
+voice-samples/
+__pycache__/
+.claude/
+.DS_Store
+*.raw

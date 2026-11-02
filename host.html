@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Droomtelefoon · TV</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Pacifico&family=Nunito:wght@600;800;900&family=VT323&display=swap">
+<style>
+  /* Palette from the 1992 MB box: phone pink on night violet, laser blue, acid lime, sun yellow, and the green-grey LCD. */
+  :root { --pink: #ff3ea5; --gum: #ff9ad5; --cyan: #2ee6ff; --lime: #c6ff3a; --yellow: #ffe14d; --purple: #7b2cff; --ink: #12001f; --card: #1d0833; --line: #33124f; --lcd: #b9cc9a; --lcd-ink: #1d2a14; --gap: .55vw }
+  * { box-sizing: border-box }
+  html { background: var(--ink) }
+  body { margin: 0; color: #fff; font-family: 'Nunito', system-ui, sans-serif; height: 100vh; overflow: hidden;
+    background: radial-gradient(40vw 40vw at 88% 40%, #ff3ea533, transparent 70%), radial-gradient(35vw 30vw at 0% 100%, #2ee6ff1f, transparent 70%), var(--ink);
+    display: grid; grid-template-columns: minmax(0, 1fr) 29vw; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "head phone" "board phone" "tick tick"; column-gap: 2vw; padding: 2vh 2vw 0 }
+  button { font-family: inherit }
+  :focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px }
+
+  /* header */
+  header { grid-area: head; display: flex; align-items: flex-end; justify-content: space-between; gap: 2vw; padding-bottom: 1.4vh }
+  .script { font: 400 1.7vw 'Pacifico'; color: var(--cyan); text-shadow: 0 0 18px #2ee6ff99; margin-left: .3vw; line-height: 1 }
+  .logo { font: 400 4.4vw/.9 'Anton'; letter-spacing: .1vw; background: linear-gradient(180deg, #ffe14d 0%, #ff8a00 35%, #ff3ea5 70%, #ff6fd2 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 .25vw 0 #5c0036) drop-shadow(0 0 22px #ff3ea588) }
+  .meta { display: flex; align-items: center; gap: 1.2vw }
+  .round { display: flex; flex-direction: column; align-items: flex-end; gap: .4vh; font: 800 .95vw 'Nunito'; color: var(--gum) }
+  .hearts { display: flex; gap: .25vw } .hearts svg { width: 1.3vw; height: 1.3vw; fill: #3a1556 } .hearts .on { fill: var(--pink); filter: drop-shadow(0 0 6px #ff3ea5) } .hearts .now { fill: var(--yellow); filter: drop-shadow(0 0 8px #ffe14d) }
+  button.small { font: 800 .8vw 'Nunito'; padding: .45vw 1vw; border: 2px solid var(--line); border-radius: 999px; background: transparent; color: #b8a3c9; cursor: pointer }
+
+  /* board: one lane per player, ten photo cards per lane */
+  #board { grid-area: board; display: flex; flex-direction: column; justify-content: center; gap: .8vh; min-height: 0; padding-bottom: 1vh }
+  .row { flex: 1 1 0; max-height: 16vh; display: flex; align-items: center; gap: 1vw; min-height: 0; container-type: size; border-radius: 1vw; padding: 0 .6vw; transition: background .4s }
+  .row.turn { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 22%, transparent), transparent 70%) }
+  .who { width: 15vw; height: 100%; display: flex; align-items: center; gap: .7vw; flex-shrink: 0 }
+  .who .av { height: min(84cqh, 5vw); aspect-ratio: 1; border-radius: 50%; border: .2vw solid var(--c); box-shadow: 0 0 14px color-mix(in srgb, var(--c) 60%, transparent); background: linear-gradient(135deg, var(--cyan), var(--pink)); display: grid; place-items: center; overflow: hidden; flex-shrink: 0; font: 900 1vw 'Nunito'; color: var(--ink) }
+  .who .av img { width: 100%; height: 100%; object-fit: cover }
+  .who .nm { min-width: 0; display: flex; flex-direction: column } .who .nm b { font: 400 clamp(14px, 38cqh, 2vw)/1 'Anton'; letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  .who .nm span { font: 700 clamp(9px, 15cqh, .8vw)/1.2 'Nunito'; color: var(--gum); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  .row.turn .who .nm b { color: var(--yellow) }
+  .who .sc { margin-left: auto; font: 400 clamp(16px, 46cqh, 2.4vw)/1 'Anton'; color: var(--yellow); text-shadow: 0 0 12px #ffe14d66 }
+  .sc.bump { animation: bump .7s cubic-bezier(.2, 1.6, .4, 1) }
+  @keyframes bump { 0% { transform: scale(1) } 30% { transform: scale(1.5); color: #fff } 100% { transform: scale(1) } }
+  .cards { flex: 1; height: 100%; display: flex; align-items: center; gap: var(--gap); container-type: size; min-width: 0 }
+  .card { height: min(96cqh, calc((100cqw - 9 * var(--gap)) / 10 * 4 / 3)); aspect-ratio: 3 / 4; perspective: 600px; container-type: size; flex-shrink: 0 }
+  .c-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.3, 1.3, .5, 1) }
+  .card.open .c-in, .card.missed .c-in { transform: rotateY(180deg) }
+  .face { position: absolute; inset: 0; border-radius: 7cqw; backface-visibility: hidden; overflow: hidden; border: 3.5cqw solid #fff; box-shadow: 0 .4vh 0 #0006 }
+  .front { background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--c) 35%, #2a0b45), #170528 75%); display: grid; place-items: center }
+  .front svg { width: 72%; margin-top: -12% }
+  .front .num { position: absolute; right: 5cqw; bottom: 5cqw; min-width: 30cqw; height: 26cqw; padding: 0 6cqw; border-radius: 13cqw; background: linear-gradient(#fff4fb, #ffc9e8); color: #c0006b; font: 400 18cqw/26cqw 'Anton'; text-align: center; box-shadow: 0 2cqw 0 #b30b6a }
+  .front .calls { position: absolute; left: 6cqw; top: 5cqw; font: 900 12cqw 'Nunito'; color: var(--gum) }
+  .back { transform: rotateY(180deg); background: #000 }
+  .back img { width: 100%; height: 100%; object-fit: cover; display: block }
+  .back .ini { position: absolute; inset: 0; display: grid; place-items: center; font: 400 34cqw 'Anton'; background: linear-gradient(160deg, var(--pink), var(--purple)); padding-bottom: 20% }
+  .back .nm { position: absolute; left: 0; right: 0; bottom: 0; padding: 4cqw 4cqw 5cqw; background: linear-gradient(transparent, #000c 40%); font: 900 11cqw/1.05 'Nunito'; text-align: center; text-shadow: 0 1px 2px #000 }
+  .card.missed .face { border-color: #b9a3d0 }
+  body.spot .row { opacity: .22; transition: opacity .4s } body.spot .row.spotlit { opacity: 1; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 30%, transparent), transparent 80%) }
+  .greet { margin: 0 0 2.5vh; max-width: 40vw; padding: 1vw 1.4vw; border-radius: 1.4vw 1.4vw 1.4vw .3vw; background: linear-gradient(180deg, #ff86cf, var(--pink)); font: 800 1.15vw/1.35 'Nunito'; box-shadow: 0 0 24px #ff3ea566; display: none }
+  .greet b { display: block; font: 400 .95vw 'Pacifico'; color: #fff3fa; margin-bottom: .2vw }
+  .card.live .front { box-shadow: inset 0 0 0 1.5cqw var(--yellow) } .card.live { animation: hover 1.1s ease-in-out infinite alternate } .card.live .face { border-color: var(--yellow) }
+  @keyframes hover { from { transform: translateY(0) } to { transform: translateY(-6%) } }
+
+  /* the phone: the one loud thing on screen */
+  #phonecol { grid-area: phone; display: flex; flex-direction: column; align-items: center; min-height: 0; padding-top: 1vh; gap: 1.4vh }
+  #phonewrap { height: 58vh; aspect-ratio: 320 / 720; transform-origin: 50% 90%; position: relative; filter: drop-shadow(0 2vh 3vh #000a) }
+  #phonewrap svg { width: 100%; height: 100%; overflow: visible }
+  #phonewrap.ring { animation: ring 1.5s infinite }
+  @keyframes ring { 0%, 52%, 100% { transform: rotate(0) } 4%, 12%, 20%, 28%, 36%, 44% { transform: rotate(-5deg) translateX(-1%) } 8%, 16%, 24%, 32%, 40%, 48% { transform: rotate(5deg) translateX(1%) } }
+  #ph-waves { opacity: 0 } .ring #ph-waves, .out #ph-waves { opacity: 1; animation: waves .75s steps(2) infinite }
+  @keyframes waves { 50% { opacity: .2 } }
+  .talk #ph-led { animation: led 1s steps(2) infinite } @keyframes led { 50% { fill: #c6ff3a } }
+  .key.lit .cap { fill: var(--yellow) } .key.lit { filter: drop-shadow(0 0 10px #ffe14d) } .key.lit text { fill: #7a3b00 }
+  #guide { width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .9vh }
+  #g-name { margin: 0; font: 400 5.4vw/.95 'Anton'; overflow-wrap: anywhere; letter-spacing: .05em; color: #fff; text-shadow: 0 .3vw 0 #a3005c, 0 0 24px #ff3ea5aa }
+  #g-text { margin: 0; font: 800 1.15vw/1.3 'Nunito'; color: #ffe3f3; max-width: 26vw; min-height: 3vw }
+  #g-tags { display: flex; gap: .5vw; flex-wrap: wrap; justify-content: center } #g-tags span { padding: .45vw .9vw; border-radius: 999px; background: #ffffff12; border: 2px solid #ffffff22; font: 800 .8vw 'Nunito'; color: var(--lime) }
+  #transcript { display: none; width: 100%; max-height: 18vh; overflow: hidden; display: none; flex-direction: column; justify-content: flex-end; gap: .5vh; font: 700 .9vw/1.3 'Nunito' }
+  #transcript div { padding: .5vw .8vw; border-radius: 1vw 1vw 1vw .3vw; background: #ff3ea533; align-self: flex-start; max-width: 92% } #transcript .u { background: #2ee6ff26; border-radius: 1vw 1vw .3vw 1vw; align-self: flex-end }
+
+  /* ticker */
+  #ticker { grid-area: tick; margin: 0 -2vw; height: 7.5vh; display: flex; align-items: center; gap: 1.5vw; padding: 0 2vw; background: #0a0013; border-top: 3px solid var(--pink); box-shadow: 0 -10px 30px #ff3ea522 }
+  .tk-label { font: 400 1.25vw 'Pacifico'; color: var(--gum); white-space: nowrap; text-shadow: 0 0 12px #ff3ea599 }
+  .tk-track { flex: 1; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent) }
+  .tk-run { display: inline-flex; gap: 3vw; white-space: nowrap; font: 800 1.1vw 'Nunito'; animation: tick var(--dur, 40s) linear infinite; padding-left: 100% }
+  .tk-run span svg { width: .9vw; height: .9vw; vertical-align: -.05vw; margin-right: .5vw }
+  @keyframes tick { to { transform: translateX(-100%) } }
+  .tk-join { display: flex; align-items: center; gap: .8vw } #qr { width: 5.6vh; height: 5.6vh; background: #fff; padding: .25vh; border-radius: .5vh } #qr img, #qr canvas, #l-qr img, #l-qr canvas { width: 100% !important; height: 100% !important }
+  #code { font: 400 1.9vw/1 'Anton'; letter-spacing: .3vw; color: var(--cyan); text-shadow: 0 0 14px #2ee6ff88 } #url { font: 700 .65vw 'Nunito'; color: #8f7aa3 }
+
+  /* overlays */
+  .overlay { position: fixed; inset: 0; display: none; z-index: 5 }
+  button.big { font: 400 2vw 'Anton'; letter-spacing: .1vw; padding: 1vw 3vw; min-height: 44px; border: 0; border-radius: 999px; background: linear-gradient(180deg, var(--yellow), #ff8a00); color: var(--ink); box-shadow: 0 .5vw 0 #9a5200, inset 0 10px 12px -8px #fffc; cursor: pointer }
+  button.ghost { font: 800 1.1vw 'Nunito'; padding: .8vw 2vw; min-height: 44px; border-radius: 999px; border: 2px solid var(--line); background: transparent; color: #ccc; cursor: pointer }
+
+  #lobby { background: radial-gradient(50vw 50vw at 75% 45%, #ff3ea533, transparent 70%), var(--ink); grid-template-columns: 1.15fr 1fr; align-items: center; padding: 6vh 6vw; gap: 4vw }
+  #lobby .script { font-size: 3vw } #lobby .logo { font-size: 8.4vw }
+  #lobby ol { margin: 3vh 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 1.4vh; font: 800 1.45vw/1.3 'Nunito'; color: #ffe3f3 }
+  #lobby ol li { counter-increment: s; display: flex; gap: 1vw; align-items: baseline } #lobby ol li::before { content: counter(s); font: 400 1.7vw 'Anton'; color: var(--ink); background: var(--yellow); border-radius: 50%; min-width: 2.4vw; height: 2.4vw; display: inline-grid; place-items: center; transform: translateY(.3vw) }
+  #lobby ol b { color: var(--cyan) }
+  .lobby-acts { display: flex; flex-wrap: wrap; gap: 1vw; align-items: center } .lobby-acts button { white-space: nowrap } /* buttons stay one line; the row wraps instead */
+  .seats { display: flex; flex-wrap: wrap; gap: .8vw; margin-bottom: 3vh }
+  .seat { display: flex; align-items: center; gap: .6vw; padding: .35vw 1.2vw .35vw .35vw; border-radius: 999px; background: var(--card); border: 2px solid var(--line); font: 900 1.25vw 'Nunito'; opacity: .45 }
+  .seat i { width: 2.2vw; height: 2.2vw; border-radius: 50%; background: var(--c); overflow: hidden; display: block } .seat i img { width: 100%; height: 100%; object-fit: cover } .seat.in { opacity: 1; border-color: var(--c); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 50%, transparent) }
+  .polaroid { justify-self: center; background: #fff; padding: 1.6vw 1.6vw 4.4vw; border-radius: .6vw; transform: rotate(3deg); box-shadow: 0 3vh 6vh #000a; position: relative; width: 28vw }
+  .polaroid p { position: absolute; left: 0; right: 0; bottom: 1.1vw; margin: 0; text-align: center; font: 400 1.6vw 'Pacifico'; color: #c0006b }
+  #l-qr { width: 100%; aspect-ratio: 1 }
+
+  #finale { background: #12001fe8; backdrop-filter: blur(6px); flex-direction: column; align-items: center; justify-content: center; gap: 3vh; z-index: 6 }
+  #finale .script { font-size: 2.4vw; color: var(--gum) }
+  #podium { display: flex; align-items: flex-end; gap: 3vw }
+  .pod { display: flex; flex-direction: column; align-items: center; gap: 1vh; text-align: center }
+  .pod .av { width: 9vw; aspect-ratio: 1; border-radius: 50%; overflow: hidden; border: .35vw solid var(--c); background: linear-gradient(135deg, var(--cyan), var(--pink)); display: grid; place-items: center; font: 400 3vw 'Anton'; color: var(--ink) } .pod .av img { width: 100%; height: 100%; object-fit: cover }
+  .pod.first .av { width: 14vw; border-color: var(--yellow); box-shadow: 0 0 40px #ffe14d88 }
+  .pod b { font: 400 2.6vw/1 'Anton' } .pod.first b { font-size: 4vw; color: var(--yellow) } .pod span { font: 800 1.2vw 'Nunito'; color: var(--gum) }
+  .pod .stand { width: 12vw; border-radius: 1vw 1vw 0 0; background: linear-gradient(var(--card), transparent); border-top: .3vw solid var(--c); font: 400 3vw 'Anton'; color: #ffffff44; display: grid; place-items: center } .pod.first .stand { width: 16vw }
+  #rest { list-style: none; margin: 0; padding: 0; display: flex; gap: 2vw; flex-wrap: wrap; justify-content: center; font: 800 1.2vw 'Nunito'; color: #d9c7ea }
+
+  /* unmask moment */
+  #cele { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; align-content: center; gap: 2.5vh; background: radial-gradient(circle at 50% 45%, #ff3ea566, #12001ff2 60%); opacity: 0; pointer-events: none; transition: opacity .35s }
+  #cele.on { opacity: 1 } #cele.out { opacity: 0 }
+  #ce-card { width: 22vh; height: auto; transform: scale(.4) rotate(-8deg); transition: transform .6s cubic-bezier(.2, 1.5, .4, 1) }
+  #cele.on #ce-card { transform: scale(1.6) rotate(0) }
+  #ce-card .c-in { transition-duration: .8s }
+  #cele.flip #ce-card .c-in { transform: rotateY(180deg) }
+  #ce-name { font: 400 var(--fs, 7vw)/1 'Anton'; letter-spacing: .05em; text-align: center; margin-top: 6vh; background: linear-gradient(180deg, #fff 0%, #ffe14d 45%, #ff3ea5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 .35vw 0 #5c0036) drop-shadow(0 0 30px #ff3ea5); opacity: 0; transform: scale(1.8); transition: opacity .3s .55s, transform .5s .55s cubic-bezier(.2, 1.4, .4, 1) }
+  #cele.flip #ce-name { opacity: 1; transform: scale(1) }
+  #ce-by { font: 800 1.6vw 'Nunito'; color: #ffe3f3; opacity: 0; transition: opacity .4s 1s } #cele.flip #ce-by { opacity: 1 } #ce-by em { font-style: normal; color: var(--lime) }
+  #ce-hearts span { position: fixed; left: 50%; top: 42%; width: 3vw; height: 3vw; opacity: 0 }
+  #ce-hearts svg { width: 100%; height: 100%; fill: var(--h) }
+  #cele.flip #ce-hearts span { animation: burst 1.6s cubic-bezier(.1, .7, .3, 1) var(--d) forwards }
+  @keyframes burst { 0% { opacity: 1; transform: translate(-50%, -50%) scale(.2) } 100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--r)) scale(1) } }
+
+  @media (prefers-reduced-motion: reduce) {
+    #phonewrap.ring, .card.live, .tk-run, #cele.flip #ce-hearts span, .sc.bump { animation: none }
+    .c-in, #ce-card, #ce-name { transition: none }
+    .tk-run { padding-left: 0; white-space: normal }
+  }
+
+  /* setup wizard */
+  #setup { background: radial-gradient(1200px 500px at 50% -10%, #3a0a5c 0%, var(--ink) 60%); flex-direction: column; align-items: center; justify-content: center; gap: 2vh; padding: 4vh 4vw; overflow-y: auto }
+  #setup .steps { display: flex; gap: .8vw; flex-wrap: wrap; justify-content: center } #setup .steps span { padding: .4vw 1vw; border-radius: 999px; background: var(--card); border: 2px solid var(--line); font: 800 .85vw 'Nunito'; color: #aaa }
+  #setup .steps span.on { border-color: var(--pink); color: #fff; box-shadow: 0 0 14px #ff3ea588 } #setup .steps span.done { color: var(--lime); border-color: #5bd40066 }
+  #setup h2 { margin: 0; font: 400 4vw/1 'Anton'; text-align: center; text-shadow: 0 4px 0 #a3005c }
+  #setup .sub { font: 800 1.2vw 'Nunito'; color: var(--gum); margin: 0; text-align: center }
+  .wcard { width: min(1100px, 92vw); border-radius: 2vw; padding: 2vw; background: var(--card); border: 2px solid var(--line); display: flex; flex-direction: column; gap: 1.6vw }
+  .wcard label, .wcard .lbl { font: 800 1vw 'Nunito'; color: var(--gum) }
+  .wcard input { width: 100%; height: 3.6vw; min-height: 44px; border-radius: 999px; border: 2px solid var(--line); background: var(--ink); color: #fff; padding: 0 1.4vw; font: 800 1.4vw 'Nunito' }
+  .wcard input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 14px #2ee6ff66 } .wcard input::placeholder { color: #ffffff40 }
+  .field { display: flex; flex-direction: column; gap: .5vw; min-width: 0 }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1vw 1.4vw } .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1vw 1.4vw }
+  .pills { display: flex; gap: .6vw; flex-wrap: wrap } .pills button { font: 800 1.2vw 'Nunito'; padding: .7vw 1.4vw; min-height: 44px; border-radius: 999px; border: 2px solid var(--line); background: var(--ink); color: #ddd; cursor: pointer }
+  .pills button.on { background: linear-gradient(180deg, #ff86cf, var(--pink)); border-color: var(--gum); color: #fff; box-shadow: 0 0 14px #ff3ea588, inset 0 8px 12px -8px #fffb }
+  .stepper { display: flex; align-items: center; justify-content: center; gap: 2vw } .stepper button { width: 6vw; height: 6vw; min-width: 56px; min-height: 56px; border-radius: 50%; border: 3px solid var(--cyan); background: var(--card); color: var(--cyan); font: 400 3vw 'Anton'; cursor: pointer; box-shadow: 0 6px 0 #0a5a66 }
+  .stepper b { font: 400 10vw/1 'Anton'; color: var(--yellow); min-width: 14vw; text-align: center; text-shadow: 0 0 30px #ffe14d88 }
+  .wnav { display: flex; gap: 1vw; justify-content: center; align-items: center }
+  .genrow { display: flex; align-items: center; gap: 1vw; padding: .7vw 1.2vw; border-radius: 999px; background: var(--ink); border: 2px solid var(--line); font: 900 1.3vw 'Nunito' }
+  .genrow .st { margin-left: auto; padding: .35vw 1vw; border-radius: 999px; font: 800 .9vw 'Nunito' }
+  .st.wacht { background: #2a1448; color: #aaa } .st.bezig { background: var(--cyan); color: var(--ink); animation: blink .6s infinite alternate } .st.klaar { background: var(--lime); color: var(--ink) } .st.fout { background: #ff6b6b; color: #fff }
+  @keyframes blink { from { opacity: 1 } to { opacity: .55 } }
+  #w-err { min-height: 1.4vw; font: 800 1.1vw 'Nunito'; color: #ff6b6b; text-align: center; margin: 0 }
+  .ja { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: var(--lime); color: var(--ink); font: 900 .75vw 'Nunito'; vertical-align: middle; white-space: nowrap }
+  #toast { position: fixed; left: 50%; bottom: 10vh; transform: translate(-50%, 2vh); z-index: 30; max-width: 60vw; padding: 1vw 1.6vw; border-radius: 999px; background: var(--lime); color: var(--ink); font: 800 1.1vw/1.3 'Nunito'; box-shadow: 0 1vh 3vh #0008; opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s }
+  #toast.on { opacity: 1; transform: translate(-50%, 0) } #toast.bad { background: #ff6b6b; color: #fff }
+  /* tasks, polaroids and stickers on the TV */
+  #tv-task { display: none; width: 100%; border-radius: 1.6vw; padding: 1vw 1.3vw; background: linear-gradient(160deg, var(--yellow), #ff8a00); color: var(--ink); box-shadow: 0 .5vw 0 #9a5200, 0 0 30px #ffe60055; align-items: center; gap: 1vw; animation: taskin .5s cubic-bezier(.2, 1.5, .4, 1) }
+  #tv-task.on { display: flex } #tv-task svg { width: 2.6vw; height: 2.6vw; flex-shrink: 0 } #tv-task b { font: 400 1.3vw/1 'Anton'; letter-spacing: .05em; display: block; margin-bottom: .3vw } #tv-task span { font: 800 1.05vw/1.25 'Nunito' }
+  #tv-task .vote { margin-left: auto; font: 400 2.4vw/1 'Anton'; white-space: nowrap }
+  @keyframes taskin { from { transform: scale(.6) rotate(-4deg); opacity: 0 } }
+  .pola { background: #fff; padding: .6vw .6vw 2vw; border-radius: .4vw; box-shadow: 0 1vh 3vh #000a; transform: rotate(var(--r, -3deg)); animation: drop .6s cubic-bezier(.2, 1.4, .4, 1); position: relative }
+  .pola img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #eee } .pola p { position: absolute; left: 0; right: 0; bottom: .4vw; margin: 0; text-align: center; font: 400 1vw 'Pacifico'; color: #c0006b }
+  @keyframes drop { from { transform: translateY(-40vh) rotate(var(--r, -3deg)) scale(.7); opacity: 0 } }
+  #tv-media { width: 16vw; display: none } #tv-media.on { display: block }
+  #wall { display: flex; flex-wrap: wrap; gap: 1vw; justify-content: center; max-width: 90vw } #wall .pola { width: 9vw }
+  /* flash-by: between turns a memory from earlier in the night slides across */
+  #flash { position: fixed; left: 50%; top: 50%; width: 22vw; z-index: 15; pointer-events: none; opacity: 0 }
+  #flash.on { animation: flashby 3.6s cubic-bezier(.3, 1, .4, 1) forwards }
+  @keyframes flashby { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-14deg) scale(.5) translateX(-60vw) } 18% { opacity: 1; transform: translate(-50%, -50%) rotate(-4deg) scale(1) translateX(0) } 80% { opacity: 1; transform: translate(-50%, -50%) rotate(-2deg) scale(1.02) translateX(2vw) } 100% { opacity: 0; transform: translate(-50%, -50%) rotate(4deg) scale(.9) translateX(60vw) } }
+  #flash .pola p { font-size: 1.2vw } #flash .tag { position: absolute; top: -1.2vw; left: -1vw; padding: .4vw 1vw; border-radius: 999px; background: var(--lime); color: var(--ink); font: 800 .9vw 'Nunito'; transform: rotate(-6deg) }
+  /* pause: a frosted screen over the board, every timer on the server is frozen meanwhile */
+  #pause { position: fixed; inset: 0; z-index: 25; display: none; place-items: center; text-align: center; background: #12001fcc; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px) } #pause.on { display: grid }
+  #pause .script { font-size: 3vw } #pause h2 { margin: 1vh 0 2vh; font: 400 14vw/1 'Anton'; color: var(--yellow); text-shadow: 0 0 3vw #ff3ea5, 0 .6vw 0 #c0006b; animation: pausebeat 1.6s ease-in-out infinite }
+  @keyframes pausebeat { 50% { transform: scale(1.04) } } @media (prefers-reduced-motion: reduce) { #pause h2 { animation: none } }
+  #pause p { margin: 0 0 5vh; font: 800 2.2vw 'Nunito'; color: #ffe3f3 }
+  /* tutorial: narrated slideshow that explains the whole game to the room */
+  button.big.alt { background: linear-gradient(180deg, var(--cyan), #0aa9c2); box-shadow: 0 .5vw 0 #06647a, inset 0 10px 12px -8px #fffc }
+  #tut { position: fixed; inset: 0; z-index: 30; display: none; grid-template-columns: 30vw 1fr; grid-template-rows: 1fr auto; align-items: center; gap: 2vh 4vw; padding: 7vh 7vw 5vh;
+    background: radial-gradient(45vw 45vw at 18% 45%, #ff3ea544, transparent 70%), radial-gradient(40vw 30vw at 100% 100%, #2ee6ff22, transparent 70%), var(--ink) }
+  #tut.on { display: grid }
+  #tut .ic { width: 26vw; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-size: 13vw; background: radial-gradient(circle at 35% 30%, #ff9ad5, var(--pink) 55%, #a3005c); box-shadow: 0 0 6vw #ff3ea599, inset 0 -1.5vw 3vw #0004; animation: tutbob 2.4s ease-in-out infinite alternate }
+  @keyframes tutbob { from { transform: translateY(-1vh) rotate(-4deg) } to { transform: translateY(1vh) rotate(4deg) } }
+  #tut .n { font: 400 1.4vw 'Anton'; letter-spacing: .2vw; color: var(--cyan) }
+  #tut h2 { margin: .6vh 0 3vh; font: 400 5.4vw/1 'Anton'; color: var(--yellow); text-shadow: 0 0 2vw #ff3ea5, 0 .4vw 0 #c0006b }
+  #tut ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2vh } #tut li { display: flex; gap: 1.2vw; align-items: baseline; font: 800 2.2vw/1.25 'Nunito'; color: #ffe3f3 }
+  #tut li::before { content: '♥'; color: var(--pink); flex-shrink: 0 } #tut li b { color: var(--cyan) }
+  #tut .slide { animation: tutin .5s cubic-bezier(.3, 1.4, .5, 1) } @keyframes tutin { from { opacity: 0; transform: translateX(4vw) } }
+  #tut nav { grid-column: 1 / -1; display: flex; align-items: center; gap: 1vw } #tut .dots { display: flex; gap: .6vw; margin-right: auto } #tut .dots i { width: 1vw; height: 1vw; border-radius: 50%; background: var(--line) } #tut .dots i.on { background: var(--yellow); box-shadow: 0 0 1vw var(--yellow) }
+  #tut .talk { font: 800 1vw 'Nunito'; color: #8f7aa3; margin-right: 1vw }
+  @media (prefers-reduced-motion: reduce) { #tut .ic, #tut .slide { animation: none } }
+</style>
+</head>
+<body>
+<header>
+  <div><div class="script">Elektronische</div><div class="logo">DROOMTELEFOON</div></div>
+  <div class="meta">
+    <div class="round"><span id="round-txt"></span><div class="hearts" id="hearts"></div></div>
+    <button class="small" id="sound" onclick="unlockAudio()" style="border-color:var(--yellow);color:var(--yellow)">Geluid aan</button>
+    <button class="small" id="pausebtn" hidden onclick="act(state?.pub?.paused ? 'resume' : 'pause')">Pauze</button>
+    <button class="small" onclick="tutOpen()">Uitleg</button>
+    <button class="small" onclick="act('skip')">Beurt overslaan</button>
+    <button class="small" onclick="confirm('Spel resetten?') && act('reset')">Reset</button>
+  </div>
+</header>
+
+<main id="board" aria-label="Speelbord"></main>
+
+<section id="phonecol" aria-live="polite">
+  <div id="phonewrap">
+    <svg viewBox="0 0 320 720" role="img" aria-label="De Droomtelefoon">
+      <defs>
+        <linearGradient id="g-body" x1="0" x2="1"><stop offset="0" stop-color="#ff8fd2"/><stop offset=".42" stop-color="#ff3ea5"/><stop offset="1" stop-color="#c4107a"/></linearGradient>
+        <linearGradient id="g-key" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6fc"/><stop offset="1" stop-color="#ffc6e7"/></linearGradient>
+        <linearGradient id="g-lcd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c7d9a8"/><stop offset="1" stop-color="#a9bd8a"/></linearGradient>
+      </defs>
+      <g id="ph-waves" fill="none" stroke="#ffe14d" stroke-width="7" stroke-linecap="round">
+        <path d="M14 200q-18 40 0 80"/><path d="M-8 180q-26 60 0 120"/><path d="M306 200q18 40 0 80"/><path d="M328 180q26 60 0 120"/>
+      </g>
+      <rect x="54" y="8" width="22" height="130" rx="11" fill="#2a0a3a"/>
+      <circle cx="65" cy="16" r="16" fill="#ff3ea5"/><circle id="ph-led" cx="65" cy="16" r="6.5" fill="#ffc6e7"/>
+      <rect x="22" y="96" width="276" height="610" rx="100" fill="#8f0b58"/>
+      <rect x="22" y="90" width="276" height="606" rx="100" fill="url(#g-body)"/>
+      <rect x="48" y="150" width="30" height="470" rx="15" fill="#fff" opacity=".22"/>
+      <g fill="#a10a62"><rect x="128" y="126" width="8" height="24" rx="4"/><rect x="144" y="122" width="8" height="30" rx="4"/><rect x="160" y="120" width="8" height="34" rx="4"/><rect x="176" y="122" width="8" height="30" rx="4"/><rect x="192" y="126" width="8" height="24" rx="4"/></g>
+      <text x="160" y="196" text-anchor="middle" font-family="Pacifico" font-size="27" fill="#fff">Droomtelefoon</text>
+      <rect x="60" y="212" width="200" height="100" rx="16" fill="#6f8457"/>
+      <rect x="68" y="220" width="184" height="84" rx="10" fill="url(#g-lcd)"/>
+      <text x="160" y="263" text-anchor="middle" font-family="VT323" font-size="44" fill="#1d2a14" opacity=".07">88888888</text>
+      <text id="ph-l1" x="160" y="263" text-anchor="middle" font-family="VT323" font-size="44" fill="#1d2a14"></text>
+      <text id="ph-l2" x="160" y="292" text-anchor="middle" font-family="VT323" font-size="23" fill="#1d2a14"></text>
+      <g id="ph-keys" font-family="Anton" font-size="30" text-anchor="middle"></g>
+      <g fill="#a10a62"><circle cx="136" cy="640" r="5"/><circle cx="160" cy="646" r="5"/><circle cx="184" cy="640" r="5"/></g>
+    </svg>
+  </div>
+  <div id="guide"><h2 id="g-name"></h2><p id="g-text"></p><div id="g-tags"></div></div>
+  <div id="tv-task"></div>
+  <div id="tv-media" class="pola"></div>
+  <div id="transcript"></div>
+</section>
+
+<footer id="ticker">
+  <div class="tk-label">Wie is jouw Geheime Aanbidder?</div>
+  <div class="tk-track"><div class="tk-run" id="tk"></div></div>
+  <div class="tk-join"><div id="qr"></div><div><div id="code"></div><div id="url"></div></div></div>
+</footer>
+
+<div id="lobby" class="overlay">
+  <div>
+    <div class="script">Elektronische</div><div class="logo">DROOMTELEFOON</div>
+    <ol>
+      <li><span>Scan de code met je gsm en kies je naam.</span></li>
+      <li><span>Zet de Droomtelefoon aan op <b id="l-phone"></b></span></li>
+      <li><span>Iedereen binnen? Start het spel.</span></li>
+    </ol>
+    <div class="seats" id="seats"></div>
+    <p class="greet" id="l-greet" aria-live="polite"></p>
+    <p id="l-ai" style="font:700 1vw 'Nunito';color:#8f7aa3;margin:0 0 2vh"></p>
+    <div class="lobby-acts"><button class="big alt" onclick="tutOpen()">Uitleg ▶</button><button class="big" onclick="act('start')">Start het spel</button><button class="ghost" onclick="act('edit')">Spelers aanpassen</button><button class="ghost" onclick="pickXlsx()">Excel inladen</button><button class="ghost" onclick="openXlsx()">Open spelers.xlsx</button></div>
+  </div>
+  <div class="polaroid"><div id="l-qr"></div><p id="l-url"></p></div>
+</div>
+
+<div id="setup" class="overlay">
+  <div class="script" style="font-size:2vw">Elektronische</div>
+  <div class="steps" id="w-steps"></div>
+  <h2 id="w-title"></h2>
+  <p class="sub" id="w-sub"></p>
+  <div class="wcard" id="w-body"></div>
+  <p id="w-err" role="alert"></p>
+  <div class="wnav" id="w-nav"></div>
+</div>
+
+<div id="finale" class="overlay">
+  <div class="script">En de grootste charmeur is…</div>
+  <div id="podium"></div>
+  <ol id="rest"></ol>
+  <div id="wall"></div>
+  <button class="big" onclick="act('reset')">Nieuw spel</button>
+</div>
+
+<div id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-h"><div>
+  <div class="script">Droomtelefoon</div><h2 id="pause-h">PAUZE</h2><p>Even op adem komen. De klok staat stil.</p>
+  <button class="big" onclick="act('resume')">Verder spelen ▶</button>
+</div></div>
+
+<div id="tut" role="dialog" aria-modal="true" aria-label="Uitleg van het spel">
+  <div class="ic" id="tut-ic" aria-hidden="true"></div>
+  <div class="slide" id="tut-slide"></div>
+  <nav><div class="dots" id="tut-dots"></div><span class="talk" id="tut-talk"></span>
+    <button class="ghost" onclick="tutGo(tutI - 1)">◀ Vorige</button><button class="ghost" onclick="tutGo(tutI + 1)">Volgende ▶</button><button class="big" onclick="tutClose()">Sluiten</button></nav>
+</div>
+
+<div id="toast" role="status"></div>
+<input type="file" id="xlsx-in" accept=".xlsx" hidden>
+
+<div id="flash"><div class="pola" style="--r:0deg"><span class="tag">herinnering</span><img alt=""><p></p></div></div>
+<div id="cele" aria-live="assertive">
+  <div id="ce-card" class="card"><div class="c-in"><div class="face front"><span id="ce-sil"></span><span class="num" id="ce-num"></span></div><div class="face back" id="ce-back"></div></div></div>
+  <div id="ce-name"></div>
+  <div id="ce-by"></div>
+  <div id="ce-hearts"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sil = (stroke = '#2ee6ff') => `<svg viewBox="0 0 60 60" fill="none" stroke="${stroke}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="30" cy="20" r="11"/><path d="M8 56c2-14 10-21 22-21s20 7 22 21"/><path d="M24 33l6 8 6-8" stroke="#ff3ea5"/></svg>`;
+const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.3 5.3 3.2 1.7-1.9 3.1-3.2 5.3-3.2 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+const initials = n => esc(String(n).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase());
+const av = p => p.co.avatar ? `<img src="${p.co.avatar}" alt="">` : initials(p.co.name);
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const put = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } }; // only touch the DOM on change, so animations keep running
+const txt = (el, t) => { if (el.textContent !== t) el.textContent = t; };
+let state, qrDone = false, lastRing = null, audio, boardKey = '', known = null;
+
+async function act(type) { const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ type }) }); if (!r.ok) alert((await r.json()).error); }
+
+// ---------- sound ----------
+function tone(freqs, step, type = 'triangle', vol = .12, len = .22) {
+  try {
+    audio = audio || new AudioContext(); audio.resume(); const t = audio.currentTime;
+    freqs.forEach((f, i) => { const o = audio.createOscillator(), g = audio.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(vol, t + i * step); g.gain.exponentialRampToValueAtTime(.001, t + i * step + len); o.connect(g).connect(audio.destination); o.start(t + i * step); o.stop(t + i * step + len + .02); });
+  } catch {}
+}
+// Old-fashioned "trrring trrring": a fast trill, twice, repeated every 2.4 s until someone picks up.
+const trill = () => Array.from({ length: 14 }, (_, i) => (i % 2 ? 1318 : 1046));
+const ringSound = () => { tone(trill(), .028, 'square', .045, .03); setTimeout(() => tone(trill(), .028, 'square', .045, .03), 520); };
+let ringLoop = null;
+const ringOn = () => { if (!ringLoop) { ringSound(); ringLoop = setInterval(ringSound, 2400); } };
+const ringOff = () => { clearInterval(ringLoop); ringLoop = null; };
+// Browsers only allow sound after a click on the page: any click unlocks it, the button shows when it is still off.
+function unlockAudio() { try { audio = audio || new AudioContext(); audio.resume(); } catch {} setTimeout(() => $('sound').hidden = audio?.state === 'running', 200); }
+document.addEventListener('pointerdown', unlockAudio);
+let nlVoices = [];
+const loadVoices = () => { try { nlVoices = speechSynthesis.getVoices().filter(v => /^nl/i.test(v.lang)); } catch {} };
+loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; } catch {}
+const ENH = v => /enhanced|premium|verbeterd/i.test(`${v.name} ${v.voiceURI}`);
+const FEM = /ellen|claire|fleur|lotte|sanne|anna|female|vrouw/i, MAS = /xander|daan|luc|bram|\bmale\b|\bman\b/i;
+function voicePool(g) { // same mapping as on the Droomtelefoon: one voice per character, women for women, men for men
+  const best = {};
+  for (const v of nlVoices.filter(v => (g === 'f' ? FEM : MAS).test(v.name)).sort((a, b) => ENH(b) - ENH(a))) { const k = v.name.replace(/\(.*\)/, '').trim().toLowerCase(); best[k] = best[k] || v; }
+  const pool = Object.values(best).sort((a, b) => (b.lang === 'nl-BE') - (a.lang === 'nl-BE'));
+  return pool.length ? pool : nlVoices;
+}
+const PITCH = { f: [1, 1.14, 0.9, 1.28, 0.8, 1.2, 1.06, 0.95, 1.36, 0.86], m: [1, 0.86, 1.12, 0.76, 1.22, 0.93, 0.68, 1.06, 0.82, 1.17] };
+const RATE = [1, 0.93, 1.07, 0.97, 1.03];
+function say(text, v) { // the TV speaks for the Luidspreker card and the finale
+  try {
+    const g = v?.gender === 'f' ? 'f' : 'm', pool = voicePool(g), u = new SpeechSynthesisUtterance(text);
+    const k = Number.isInteger(v?.slot) ? Math.floor(v.slot / Math.max(1, pool.length)) : 0;
+    u.voice = (Number.isInteger(v?.slot) ? pool[v.slot % Math.max(1, pool.length)] : pool[0]) || null; u.lang = u.voice?.lang || 'nl-BE';
+    u.pitch = Number.isInteger(v?.slot) ? PITCH[g][k % 10] : v?.pitch || 1; u.rate = Number.isInteger(v?.slot) ? RATE[Math.floor(k / 10) % 5] : v?.rate || 1;
+    speechSynthesis.speak(u);
+  } catch {}
+}
+const revealSound = () => tone([523, 659, 784, 1047, 1319], .11, 'triangle', .14, .45);
+
+// ---------- tutorial: the TV explains the whole game, slide by slide, read aloud (Piper nl-BE via the voice server, else the TV's own voice) ----------
+const tutSlides = r => [
+  { i: '💘', t: 'Welkom bij de Droomtelefoon', l: ['Iedereen heeft vanavond <b>10 geheime aanbidders</b>', 'Allemaal bekende sterren', 'Jouw missie: ontmasker ze, één voor één'],
+    s: 'Welkom bij de Droomtelefoon! Iedereen hier heeft vanavond tien geheime aanbidders. Allemaal bekende sterren, uit de tijd dat jij tussen twaalf en vijfentwintig was. Ze zijn stapelverliefd op jou, maar ze zeggen niet wie ze zijn. Jouw missie: ontmasker ze, één voor één.' },
+  { i: '📱', t: 'Je eigen gsm', l: ['Scan de <b>QR-code</b> op de tv en kies je naam', 'Je ziet je aanbidders: <b>#1 tot #0</b>', 'Stuur ze sms\'jes: <b>3 per ronde</b>'],
+    s: 'Pak je eigen gsm. Scan de QR-code op de tv en kies je naam. Daar zie je je tien aanbidders, met een nummer van één tot nul. Elke ronde mag je ze drie sms\'jes sturen. Ze antwoorden binnen enkele seconden, met een klein hintje.' },
+  { i: '☎️', t: 'De Droomtelefoon', l: ['Ligt in het midden van de tafel', 'Gaat hij over voor <b>jou</b>? Neem op, of tik <b>OPNEMEN</b> op je gsm', 'In andere rondes <b>bel je zelf</b>: kies een nummer, ook op je gsm'],
+    s: 'In het midden van de tafel ligt de Droomtelefoon. Om de beurt is iemand aan de lijn. Gaat hij over en staat jouw naam op de tv, dan neem jij op. Dat kan ook met de groene knop op je eigen gsm; het gesprek zelf voer je met de Droomtelefoon. In andere rondes bel je zelf: je kiest een nummer, op de Droomtelefoon of op je gsm, en wacht tot je aanbidder opneemt. Tussen twee gesprekken is er even rust.' },
+  { i: '🎙️', t: 'Praten, niet typen', l: ['Spreek <b>hardop</b>, de telefoon luistert', 'Stel slimme vragen: <b>Ben je een zanger?</b>', 'Een eerlijke <b>ja</b> = +1 punt', '<b>45 seconden</b> per gesprek'],
+    s: 'Aan de telefoon praat je gewoon, hardop. De Droomtelefoon luistert mee, en je aanbidder antwoordt meteen. Gratis hints bestaan niet: je moet slimme vragen stellen. Ben je een zanger? Speelde je in een film? Elke eerlijke ja op een goede vraag is een punt. Je hebt vijfenveertig seconden, dus wees snel!' },
+  { i: '🕵️', t: 'Ik weet wie je bent!', l: ['Raad tijdens het gesprek: <b>10, 7 of 5 punten</b>', 'Of later via je gsm: <b>4 punten</b>', 'Fout? <b>−2</b> en de aanbidder hangt op'],
+    s: 'Denk je dat je het weet? Druk op: ik weet wie je bent, en typ de naam. Spelfouten mogen. Raad je het bij het eerste telefoontje, dan krijg je tien punten. Bij het tweede zeven, daarna vijf. Via je gsm kan het ook, voor vier punten. Maar opgelet: fout gegokt is min twee, en je aanbidder hangt op.' },
+  { i: '⭐', t: 'Je teamgenoot', l: ['Je <b>eerste crush</b> helpt jou vanavond', 'Belt in <b>ronde 2, 5 en 8</b> met een echte tip', 'Stuurt je een sms\'je na een foute gok'],
+    s: 'Je staat er niet alleen voor. Je eerste crush is vanavond je teamgenoot. In ronde twee, vijf en acht belt die jou op, met een echte tip. En na een foute gok krijg je een troostend sms\'je, met een nieuwe aanwijzing.' },
+  { i: '🃏', t: 'Mam zegt: ophangen!', l: ['Eén kaart op je gsm, <b>één keer</b> te spelen', 'Als iemand anders <b>gebeld wordt</b>', 'Het gesprek wordt afgebroken: <b>de beurt is weg</b>'],
+    s: 'Op je gsm heb je één kaart: mam zegt, ophangen! Je speelt hem één keer, als iemand anders gebeld wordt. Dan wordt het gesprek afgebroken en is de beurt voorbij. Speel hem slim: net als iemand bijna weet wie het is!' },
+  { i: '🦹', t: 'Steel aanbidder!', l: ['Elke <b>10 minuten</b>, 45 seconden lang', 'Weet jij wie de aanbidder van iemand anders is?', 'Steel hem: <b>+5</b> · fout: <b>−2</b>'],
+    s: 'Luister dus goed naar de gesprekken van de anderen. Elke tien minuten verschijnt op ieders gsm: steel aanbidder! Je hebt vijfenveertig seconden. Weet jij wie de aanbidder van iemand anders is? Kies de speler, het nummer, en typ de naam. Juist is plus vijf, en die aanbidder is weg voor de ander. Fout is min twee.' },
+  { i: '🏆', t: 'Wie wint?', l: [`Na <b>${r} rondes</b> is het gedaan`, 'Alle 10 ontmaskerd: <b>+10 bonus</b>', 'De <b>meeste punten</b> wint'],
+    s: `Na ${r} rondes is het spel gedaan. Wie al zijn tien aanbidders ontmaskerde, krijgt nog eens tien punten extra. Op het einde onthullen we alle aanbidders die niemand vond. De meeste punten wint. Veel plezier, en wie weet: misschien belt jouw grote liefde straks!` },
+];
+let tut = [], tutI = 0, tutAudio = null, tutTimer = 0;
+const tutWav = sl => sl.wav = sl.wav || Object.assign(new Audio('/tts?' + new URLSearchParams({ engine: 'piper', format: 'wav', g: 'f', slot: '0', text: sl.s })), { preload: 'auto' });
+function tutOpen() { tut = tutSlides(state?.pub?.rounds || 10); unlockAudio(); $('tut').classList.add('on'); tutGo(0); }
+function tutStop() { clearTimeout(tutTimer); if (tutAudio) { tutAudio.onended = tutAudio.onerror = null; tutAudio.pause(); tutAudio.currentTime = 0; tutAudio = null; } try { speechSynthesis.cancel(); } catch {} }
+function tutClose() { tutStop(); $('tut').classList.remove('on'); }
+function tutGo(i) {
+  tutStop(); if (i >= tut.length) return tutClose(); tutI = i = Math.max(0, i);
+  const sl = tut[i], next = ms => { tutTimer = setTimeout(() => tutGo(tutI + 1), ms); };
+  $('tut-ic').textContent = sl.i;
+  $('tut-slide').innerHTML = `<div class="n">${i + 1} / ${tut.length}</div><h2>${sl.t}</h2><ul>${sl.l.map(x => `<li><span>${x}</span></li>`).join('')}</ul>`;
+  $('tut-slide').style.animation = 'none'; void $('tut-slide').offsetWidth; $('tut-slide').style.animation = '';
+  $('tut-dots').innerHTML = tut.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('');
+  $('tut-talk').textContent = '🔊 wordt voorgelezen…';
+  let failed = false; const a = tutAudio = tutWav(sl);
+  const fallback = () => { if (failed || tutAudio !== a) return; failed = true; tutAudio = null; say(sl.s, { gender: 'f' }); next(2500 + sl.s.length * 70); };
+  a.onended = () => { $('tut-talk').textContent = ''; next(1400); }; a.onerror = fallback;
+  a.currentTime = 0; a.play().catch(fallback);
+  if (tut[i + 1]) tutWav(tut[i + 1]); // the next slide renders while this one plays
+}
+document.addEventListener('keydown', e => { if (!$('tut').classList.contains('on')) return; if (e.key === 'Escape') tutClose(); if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); tutGo(tutI + 1); } if (e.key === 'ArrowLeft') tutGo(tutI - 1); });
+
+// ---------- the phone ----------
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+$('ph-keys').innerHTML = KEYS.map((k, i) => {
+  const x = 66 + (i % 3) * 64, y = 336 + Math.floor(i / 3) * 66;
+  return `<g class="key" data-k="${k}"><rect x="${x}" y="${y + 7}" width="60" height="50" rx="22" fill="#b30b6a"/><rect class="cap" x="${x}" y="${y}" width="60" height="50" rx="22" fill="url(#g-key)"/><text x="${x + 30}" y="${y + 37}" fill="#c0006b">${k}</text></g>`;
+}).join('');
+const keyFor = n => (n === 10 ? '0' : String(n));
+function phone(s, c, tp) {
+  let l1 = '', l2 = '', mode = '';
+  if (s.phase === 'lobby' || s.phase === 'setup') { l1 = 'HALLO!'; l2 = 'WACHT OP SPELERS'; }
+  else if (s.phase === 'finale') { l1 = 'EINDE'; l2 = 'TOT DE VOLGENDE'; }
+  else if (!c || !tp) { l1 = new Date().toTimeString().slice(0, 5); l2 = `RONDE ${s.round}`; }
+  else {
+    const who = c.who === 'co' ? 'TIP' : `#${c.n}`, name = tp.name.toUpperCase().slice(0, 14);
+    if (c.state === 'ringing' && c.outgoing) { l1 = `BEL ${who}`; l2 = 'GAAT OVER...'; mode = 'out'; }
+    else if (c.state === 'ringing') { l1 = c.who === 'co' ? 'TEAMGENOOT' : `${who} BELT`; l2 = `VOOR ${name}`; mode = 'ring'; }
+    else if (c.state === 'dial') { l1 = 'KIES 1-0'; l2 = name; }
+    else if (c.state === 'active') { l1 = c.paused ? 'PAUZE' : c.endsAt ? fmt(c.endsAt - Date.now()) : ''; l2 = c.task && c.task.phase !== 'done' ? 'OPDRACHT' : c.who === 'co' ? 'TEAMGENOOT' : `${who}  NIVEAU ${c.level}`; mode = 'talk'; }
+    else if (c.state === 'ended') { const r = (c.result || 'OPGEHANGEN').toUpperCase(); l1 = r.startsWith('JUIST') ? 'JUIST!' : r.startsWith('FOUT') ? 'FOUT' : 'KLIK'; l2 = r.slice(0, 18); }
+  }
+  txt($('ph-l1'), l1); txt($('ph-l2'), l2);
+  const w = $('phonewrap'); for (const m of ['ring', 'out', 'talk']) w.classList.toggle(m, m === mode);
+  const lit = c && c.n && ['ringing', 'active'].includes(c.state) && c.who !== 'co' ? keyFor(c.n) : null;
+  document.querySelectorAll('.key').forEach(k => k.classList.toggle('lit', k.dataset.k === lit));
+}
+
+// ---------- board ----------
+function buildBoard(list) {
+  $('board').innerHTML = list.map(p => `
+    <div class="row" id="row-${p.id}" style="--c:${p.color}">
+      <div class="who"><div class="av" id="av-${p.id}"></div><div class="nm"><b>${esc(p.name)}</b><span>met ${esc(p.co.name)}</span></div><div class="sc" id="sc-${p.id}">${p.score}</div></div>
+      <div class="cards">${p.slots.map(sl => `<div class="card" id="cd-${p.id}-${sl.n}"><div class="c-in"><div class="face front">${sil(p.color)}<span class="calls"></span><span class="num">${sl.n}</span></div><div class="face back"></div></div></div>`).join('')}</div>
+    </div>`).join('');
+}
+function updateBoard(s, list, c, turnId) {
+  for (const p of list) {
+    $(`row-${p.id}`).classList.toggle('turn', p.id === turnId);
+    put($(`av-${p.id}`), av(p));
+    const sc = $(`sc-${p.id}`);
+    if (sc.textContent !== String(p.score)) { sc.textContent = p.score; sc.classList.remove('bump'); void sc.offsetWidth; sc.classList.add('bump'); }
+    for (const sl of p.slots) {
+      const cd = $(`cd-${p.id}-${sl.n}`); if (!cd) continue;
+      cd.classList.toggle('open', !!sl.unmasked);
+      cd.classList.toggle('missed', !sl.unmasked && !!sl.name && (finaleStage === 'podium' || shownMissed.has(`${p.id}-${sl.n}`)));
+      cd.classList.toggle('live', !!(c && c.playerId === p.id && c.n === sl.n && c.who !== 'co' && c.state !== 'ended'));
+      txt(cd.querySelector('.calls'), sl.calls && !sl.unmasked ? `${sl.calls}×` : '');
+      put(cd.querySelector('.back'), sl.name ? `${sl.img ? `<img src="${sl.img}" alt="">` : `<div class="ini">${initials(sl.name)}</div>`}<div class="nm">${esc(sl.name)}</div>` : '');
+    }
+  }
+}
+
+// ---------- the unmask moment ----------
+const queue = []; let celebrating = false;
+function detectReveals(s) {
+  const now = new Set(); s.players.forEach(p => p.slots.forEach(sl => sl.unmasked && now.add(`${p.id}-${sl.n}`)));
+  if (known && s.phase === 'playing') for (const key of now) if (!known.has(key)) {
+    const p = s.players.find(p => key.startsWith(p.id + '-')), sl = p.slots.find(x => `${p.id}-${x.n}` === key);
+    const f = s.feed.find(f => sl.stolen ? f.text.startsWith(`${sl.stolen} STAL #${sl.n} van ${p.name}:`) : f.text.includes(`#${sl.n}:`) && f.text.startsWith(p.name)), pts = f && (f.text.match(/\+(\d+)/) || [])[1];
+    queue.push({ p, sl, pts }); if (!celebrating) nextCele();
+  }
+  known = now;
+}
+function nextCele() {
+  const it = queue.shift(); if (!it) { celebrating = false; return; } celebrating = true;
+  const el = $('cele'), { p, sl } = it;
+  $('ce-card').style.setProperty('--c', p.color);
+  $('ce-sil').innerHTML = sil(p.color); $('ce-num').textContent = sl.n;
+  $('ce-back').innerHTML = (sl.img ? `<img src="${sl.img}" alt="">` : `<div class="ini">${initials(sl.name)}</div>`);
+  $('ce-name').textContent = sl.name.toUpperCase(); $('ce-name').style.setProperty('--fs', `${Math.min(8, 90 / Math.max(8, sl.name.length))}vw`);
+  $('ce-by').innerHTML = `${sl.stolen ? `gestolen door ${esc(sl.stolen)} van ${esc(p.name)}` : `ontmaskerd door ${esc(p.name)}`}${it.pts ? ` <em>+${it.pts}</em>` : ''}`;
+  const cols = ['#ff3ea5', '#ffe14d', '#2ee6ff', '#c6ff3a', '#ff9ad5'];
+  $('ce-hearts').innerHTML = Array.from({ length: 26 }, (_, i) => { const a = (i / 26) * Math.PI * 2, d = 22 + Math.random() * 26; return `<span style="--x:${Math.cos(a) * d}vw;--y:${Math.sin(a) * d * .8}vh;--r:${Math.random() * 120 - 60}deg;--d:${Math.random() * .25}s;--h:${cols[i % 5]}">${HEART}</span>`; }).join('');
+  el.className = ''; void el.offsetWidth; el.classList.add('on');
+  setTimeout(() => { el.classList.add('flip'); revealSound(); }, 800);
+  setTimeout(() => el.classList.add('out'), 5200);
+  setTimeout(() => { el.className = ''; nextCele(); }, 5700);
+}
+
+// ---------- setup wizard ----------
+// Re-rendered only on navigation, never on the 500 ms tick, so typing is never interrupted.
+let W = null, lastGen = '', lastFocus = '';
+const blank = () => ({ name: '', age: '', gender: '', orientation: '', crushes: ['', '', ''] });
+const W_STEPS = [['count', 'Spelers'], ['names', 'Namen'], ['player', 'Profielen'], ['gen', 'Aanbidders']];
+function wizardInit(draft) { W = { step: 'count', i: 0, count: draft.length || 10, players: draft.map(p => ({ ...p, crushes: [...p.crushes] })) }; }
+function wErr(m) { $('w-err').textContent = m; }
+function wSync() { document.querySelectorAll('#w-body [data-k]').forEach(el => { const p = W.players[el.dataset.p ?? W.i], [k, j] = el.dataset.k.split('.'); if (k === 'crush') p.crushes[j] = el.value; else p[k] = el.value; }); }
+function wCount(d) { W.count = Math.min(12, Math.max(2, W.count + d)); wizardRender(); }
+function wPick(k, v) { wSync(); W.players[W.i][k] = v; wizardRender(); }
+function wPrev() { wSync(); if (W.step === 'names') W.step = 'count'; else if (W.step === 'player') { if (W.i > 0) W.i--; else W.step = 'names'; } wizardRender(); }
+function wNext() {
+  wSync();
+  if (W.step === 'count') { while (W.players.length < W.count) W.players.push(blank()); W.players.length = W.count; W.step = 'names'; return wizardRender(); }
+  if (W.step === 'names') {
+    const names = W.players.map(p => p.name.trim());
+    if (names.some(n => !n)) return wErr('Vul alle namen in.');
+    if (new Set(names.map(n => n.toLowerCase())).size !== names.length) return wErr('Elke naam maar één keer.');
+    W.players.forEach((p, j) => { p.name = names[j]; }); W.step = 'player'; W.i = 0; return wizardRender();
+  }
+  if (W.step === 'player') {
+    const p = W.players[W.i], age = Number(p.age);
+    if (!Number.isInteger(age) || age < 16 || age > 99) return wErr('Leeftijd tussen 16 en 99.');
+    if (!p.gender) return wErr('Kies man, vrouw of anders.');
+    if (!p.orientation) return wErr(`Kies op wie ${p.name} valt.`);
+    if (p.crushes.some(c => !c.trim())) return wErr('Vul 3 crushes in.');
+    if (W.i < W.count - 1) { W.i++; return wizardRender(); }
+    return wSubmit();
+  }
+}
+async function wSubmit() {
+  const players = W.players.map(p => ({ ...p, age: Number(p.age), crushes: p.crushes.map(c => c.trim()) }));
+  const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ type: 'setup', players }) });
+  if (!r.ok) return wErr((await r.json()).error);
+  W.step = 'gen'; wizardRender();
+}
+function wizardRender() {
+  const s = W.step, p = W.players[W.i], at = W_STEPS.findIndex(x => x[0] === s);
+  $('w-steps').innerHTML = W_STEPS.map(([k, l], j) => `<span class="${j === at ? 'on' : j < at ? 'done' : ''}">${j + 1}. ${l}</span>`).join('');
+  wErr('');
+  let title = '', sub = '', body = '', nav = '';
+  if (s === 'count') {
+    title = 'HOEVEEL SPELERS?'; sub = 'Tussen 2 en 12. Voor 2 à 3 uur spel: 10.';
+    body = `<div class="stepper"><button aria-label="Minder spelers" onclick="wCount(-1)">−</button><b>${W.count}</b><button aria-label="Meer spelers" onclick="wCount(1)">+</button></div>`;
+    nav = `<button class="big" onclick="wNext()">Verder</button><button class="ghost" onclick="pickXlsx()">Of laad een Excel in</button><button class="ghost" onclick="openXlsx()">Open spelers.xlsx</button>`;
+  }
+  if (s === 'names') {
+    title = 'WIE SPEELT ER MEE?'; sub = 'Voornamen volstaan. Zo heten ze straks op het bord.';
+    body = `<div class="grid2">${W.players.map((q, j) => `<div class="field"><label for="w-n${j}">Speler ${j + 1}</label><input id="w-n${j}" data-p="${j}" data-k="name" maxlength="16" value="${esc(q.name)}" autocomplete="off"></div>`).join('')}</div>`;
+    nav = `<button class="ghost" onclick="wPrev()">Vorige</button><button class="big" onclick="wNext()">Verder</button>`;
+  }
+  if (s === 'player') {
+    title = p.name.toUpperCase(); sub = `Speler ${W.i + 1} van ${W.count}. Claude kiest hiermee 10 beroemde aanbidders uit de tijd van ${p.name}.`;
+    const pills = (k, label, opts) => `<div class="field"><span class="lbl" id="w-l-${k}">${label}</span><div class="pills" role="group" aria-labelledby="w-l-${k}">${opts.map(([v, l]) => `<button type="button" class="${p[k] === v ? 'on' : ''}" aria-pressed="${p[k] === v}" onclick="wPick('${k}','${v}')">${l}</button>`).join('')}</div></div>`;
+    body = `<div class="grid3">
+        <div class="field"><label for="w-age">Leeftijd</label><input id="w-age" data-k="age" type="number" min="16" max="99" inputmode="numeric" value="${esc(p.age)}"></div>
+        ${pills('gender', 'Is een', [['man', 'Man'], ['vrouw', 'Vrouw'], ['anders', 'Anders']])}
+        ${pills('orientation', 'Valt op', [['mannen', 'Mannen'], ['vrouwen', 'Vrouwen'], ['allebei', 'Allebei']])}
+      </div>
+      <div class="grid3">${[0, 1, 2].map(j => `<div class="field"><label for="w-c${j}">${j === 0 ? 'Crush 1, wordt teamgenoot' : 'Crush ' + (j + 1)}</label><input id="w-c${j}" data-k="crush.${j}" maxlength="40" placeholder="${['Patrick Swayze', 'Pamela Anderson', 'Johnny Depp'][j]}" value="${esc(p.crushes[j])}" autocomplete="off"></div>`).join('')}</div>`;
+    nav = `<button class="ghost" onclick="wPrev()">Vorige</button><button class="big" onclick="wNext()">${W.i === W.count - 1 ? 'Zoek aanbidders' : 'Volgende speler'}</button>`;
+  }
+  if (s === 'gen') {
+    title = 'CLAUDE ZOEKT AANBIDDERS'; sub = 'Per speler 10 beroemde, knappe sterren uit hun jeugd. Dit duurt een paar minuten.';
+    body = '<div id="w-gen" style="display:flex;flex-direction:column;gap:.6vw"></div>'; nav = '<div id="w-gennav" class="wnav"></div>';
+  }
+  $('w-title').textContent = title; $('w-sub').textContent = sub; $('w-body').innerHTML = body; $('w-nav').innerHTML = nav;
+  if (s === 'gen') wGenRender(true);
+  const fk = `${s}-${W.i}`; if (fk !== lastFocus) { lastFocus = fk; document.querySelector('#w-body input')?.focus(); }
+}
+function wGenRender(force) {
+  const gen = state?.pub.setup?.gen; if (!gen || !$('w-gen')) return;
+  const key = JSON.stringify(gen); if (!force && key === lastGen) return; lastGen = key;
+  const label = { wacht: 'wacht', bezig: 'Claude zoekt…', klaar: '10 aanbidders ✓' };
+  $('w-gen').innerHTML = Object.entries(gen).map(([n, st]) => `<div class="genrow"><span>${esc(n)}</span><span class="st ${st.startsWith('fout') ? 'fout' : st}">${esc(label[st] || st)}</span></div>`).join('');
+  const busy = Object.values(gen).some(v => v === 'wacht' || v === 'bezig'), failed = Object.values(gen).some(v => v.startsWith('fout'));
+  $('w-gennav').innerHTML = !busy && failed ? `<button class="ghost" onclick="W.step='player';W.i=0;wizardRender()">Gegevens aanpassen</button><button class="big" onclick="wSubmit()">Opnieuw proberen</button>` : '';
+}
+$('setup').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') wNext(); });
+
+// ---------- finale: the secrets come out, one player at a time ----------
+let finaleStage = null, prevPhase, spokenSpk = 0, spkKey = null;
+const shownMissed = new Set();
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function runFinale() {
+  await wait(900);
+  while (celebrating) await wait(300); // let the last unmask moment finish first
+  for (const p of state.pub.players.filter(p => p.joined)) {
+    const row = $(`row-${p.id}`); if (!row) continue;
+    const missed = p.slots.filter(sl => !sl.unmasked);
+    document.body.classList.add('spot'); row.classList.add('spotlit');
+    txt($('g-name'), p.name.toUpperCase());
+    txt($('g-text'), missed.length ? `${missed.length === 1 ? 'Deze aanbidder bleef' : `Deze ${missed.length} aanbidders bleven`} geheim…` : 'Allemaal ontmaskerd!');
+    say(missed.length ? `${p.name}, dit waren jouw geheime aanbidders.` : `${p.name}, jij hebt ze allemaal ontmaskerd!`);
+    for (const sl of missed) { shownMissed.add(`${p.id}-${sl.n}`); render(state); tone([660 + Math.random() * 300], 0, 'triangle', .07, .15); await wait(380); }
+    await wait(missed.length ? 2200 : 1400);
+    row.classList.remove('spotlit');
+  }
+  document.body.classList.remove('spot');
+  finaleStage = 'podium'; render(state); revealSound();
+  const best = [...state.pub.players].filter(p => p.joined).sort((a, b) => b.score - a.score || a.wrong - b.wrong)[0];
+  if (best) say(`En de grootste charmeur is ${best.name}!`);
+}
+
+// ---------- spelers.xlsx ----------
+function pickXlsx() { $('xlsx-in').click(); }
+$('xlsx-in').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const r = await fetch('/upload', { method: 'POST', body: f }); const out = await r.json();
+  if (!r.ok) alert(out.error); else if (out.unchanged) toast('Dit Excel-bestand is gelijk aan de huidige opstelling.');
+};
+async function openXlsx() { const r = await fetch('/open-excel', { method: 'POST' }); if (!r.ok) alert((await r.json()).error); }
+let toastT = Date.now(), toastTimer; // only notices that arrive after the page opened
+function toast(text, bad) { const t = $('toast'); t.textContent = text; t.className = `on${bad ? ' bad' : ''}`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = ''; }, 6000); }
+
+
+const TICON = {
+  question: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M8.5 9a3.5 3.5 0 1 1 5 3.2c-1 .6-1.5 1.3-1.5 2.3"/><circle cx="12" cy="18.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l3.8-.9L19 7.9a2.1 2.1 0 0 0-3-3L3.9 17.2 3 21z"/><path d="M14 6l4 4"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  lie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2-4 5-6 9-6s7 2 9 6c-2 4-5 6-9 6s-7-2-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>',
+  act: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.7 1.5 6.8L12 17l-6.1 3.5 1.5-6.8L2.2 9l6.9-.7z"/></svg>',
+};
+const TASK_TV = { ask: ['WEDERVRAAG', 'question', 'moet antwoorden'], draw: ['TEKEN VOOR MIJ', 'pencil', 'tekent op de Droomtelefoon'], selfie: ['SELFIE-MODUS', 'camera', 'maakt een selfie'], lie: ['LEUGENDETECTOR', 'lie', 'zoekt de leugen'], act: ['DOE-OPDRACHT', 'act', 'doet het voor de kamer'] };
+let mediaKey = null, lastFlash = null;
+function renderTask(s, c, tp) {
+  const t = c && c.state === 'active' && c.task && c.task.phase !== 'done' ? c.task : null, el = $('tv-task');
+  el.classList.toggle('on', !!t);
+  if (t) {
+    const [title, icon, verb] = TASK_TV[t.kind];
+    const html = `${TICON[icon]}<div><b>${title}</b><span>${esc(tp.name)} ${verb}: ${esc(t.prompt)}${t.kind === 'lie' ? '<br>' + t.options.map((o, i) => `${i + 1}. ${esc(o)}`).join(' · ') : ''}</span></div>${t.phase === 'voting' ? `<div class="vote">${t.votes} 👍<br><small style="font:800 .8vw 'Nunito'">stem op je gsm</small></div>` : ''}`;
+    put(el, html);
+  }
+  const m = c && c.state !== 'ended' && c.media;
+  $('tv-media').classList.toggle('on', !!m);
+  if (m && mediaKey !== m.id) { mediaKey = m.id; $('tv-media').style.setProperty('--r', `${Math.random() * 10 - 5}deg`); $('tv-media').innerHTML = `<img src="/media/${m.id}" alt=""><p>${m.kind === 'draw' ? 'tekening' : 'selfie'} van ${esc(tp.name)}</p>`; }
+  if (!m) mediaKey = null;
+}
+
+// ---------- render ----------
+function render(v) {
+  state = v; const s = v.pub;
+  $('pause').classList.toggle('on', !!s.paused); $('pausebtn').hidden = s.phase !== 'playing'; $('pausebtn').textContent = s.paused ? 'Verder' : 'Pauze';
+  $('lobby').style.display = s.phase === 'lobby' ? 'grid' : 'none';
+  $('setup').style.display = s.phase === 'setup' ? 'flex' : 'none';
+  if (s.phase === 'finale') { if (!finaleStage) { finaleStage = prevPhase === 'playing' ? 'reveal' : 'podium'; if (finaleStage === 'reveal') runFinale(); } }
+  else { finaleStage = null; shownMissed.clear(); }
+  prevPhase = s.phase;
+  $('finale').style.display = s.phase === 'finale' && finaleStage === 'podium' ? 'flex' : 'none';
+  if (s.phase === 'setup') {
+    const busy = s.setup.gen && Object.values(s.setup.gen).some(v => v !== 'klaar');
+    if (!W) { wizardInit(s.setup.draft); if (busy) W.step = 'gen'; wizardRender(); }
+    else if (busy && W.step !== 'gen') { W.step = 'gen'; wizardRender(); } // e.g. an Excel was loaded meanwhile
+    else if (W.step === 'gen') wGenRender();
+  } else W = null;
+  if (s.notice && s.notice.t > toastT) { toast(s.notice.text, !s.notice.ok); toastT = s.notice.t; }
+
+  // lobby + join
+  txt($('l-url'), s.joinUrl.replace(/^https?:\/\//, '')); txt($('l-phone'), (s.phoneUrl || s.joinUrl.replace('/play', '/phone')).replace(/^http:\/\//, '')); txt($('url'), s.joinUrl.replace(/^https?:\/\//, '')); txt($('code'), s.code);
+  txt($('l-ai'), s.ai ? 'Aanbidders praten via Claude.' : 'Geen API-key: aanbidders praten met vaste zinnen.');
+  if (!qrDone && window.QRCode) { new QRCode($('qr'), { text: s.joinUrl, width: 120, height: 120 }); new QRCode($('l-qr'), { text: s.joinUrl, width: 400, height: 400 }); qrDone = true; }
+  const g = s.greet; $('l-greet').style.display = g ? 'block' : 'none';
+  if (g) put($('l-greet'), `<b>${esc(g.from)} aan ${esc(g.to)}</b>${esc(g.text)}`);
+  put($('seats'), s.players.map(p => `<div class="seat ${p.joined ? 'in' : ''}" style="--c:${p.color}"><i>${p.co.avatar ? `<img src="${p.co.avatar}" alt="">` : ''}</i>${esc(p.name)}${p.ready ? '' : ' (nog geen aanbidders)'}</div>`).join(''));
+
+  // round hearts
+  txt($('round-txt'), s.phase === 'playing' ? `Ronde ${s.round} van ${s.rounds}` : '');
+  put($('hearts'), s.phase === 'playing' ? Array.from({ length: s.rounds }, (_, i) => HEART.replace('<svg', `<svg class="${i + 1 < s.round ? 'on' : i + 1 === s.round ? 'now' : ''}"`)).join('') : '');
+
+  // board
+  const list = s.players.filter(p => p.joined || s.phase !== 'playing');
+  const key = list.map(p => `${p.id}:${p.slots.length}`).join('|');
+  if (key !== boardKey) { boardKey = key; buildBoard(list); }
+  const c = s.call, turnId = s.order[s.turnIndex];
+  updateBoard(s, list, c, turnId);
+  detectReveals(s);
+
+  // phone + guide
+  const tp = s.players.find(p => p.id === (c?.playerId || turnId));
+  phone(s, c, tp);
+  let name = tp && s.phase === 'playing' ? tp.name : '', text = '', tags = [];
+  if (s.phase === 'playing' && c && tp) {
+    tags.push(`Beurt ${s.turnIndex + 1} van ${s.order.length}`);
+    if (c.state === 'ringing' && c.outgoing) text = `Je belt aanbidder ${c.n}. Hij gaat over…`;
+    else if (c.state === 'ringing') { text = `${c.who === 'co' ? `${tp.co.name} belt jou met een tip.` : `Aanbidder ${c.n} belt jou.`} Pak de Droomtelefoon en tik op de groene knop Opnemen.`; if (c.cardsUntil > Date.now()) tags.push(`Kaarten spelen: nog ${Math.ceil((c.cardsUntil - Date.now()) / 1000)} s`); }
+    if (c.state === 'dial') { text = 'Jij belt. Kies op de Droomtelefoon een nummer.'; }
+    if (c.state === 'active') { text = c.task && c.task.phase !== 'done' ? (c.task.phase === 'voting' ? `Iedereen: stem op je gsm. Was dit goed genoeg voor aanbidder ${c.n}?` : `Aanbidder ${c.n} geeft ${tp.name} een opdracht. De klok staat stil.`) : c.who === 'co' ? `In gesprek met ${tp.co.name}.` : `In gesprek met aanbidder ${c.n}. Verdien hints met vragen en opdrachten.`; tags.push(`${c.exchanges} van 4 vragen`); if (c.speaker) tags.push('Luidspreker aan'); if (c.paused) tags.push('Klok staat stil'); }
+    if (c.state === 'ended') text = c.result || 'Opgehangen';
+  } else if (s.phase === 'playing') text = 'Even geduld, de volgende beurt komt eraan.';
+  if (s.phase === 'playing' && s.phoneOnline === false) tags.unshift(`Geen Droomtelefoon verbonden: open ${s.joinUrl.replace('/play', '/phone').replace(/^https?:\/\//, '')} op de gsm en tik Zet aan`);
+  if (finaleStage !== 'reveal') { txt($('g-name'), name.toUpperCase()); txt($('g-text'), text); }
+  put($('g-tags'), tags.map(t => `<span>${esc(t)}</span>`).join(''));
+  const ringKey = c && c.state === 'ringing' ? `${c.playerId}-${c.n}-${c.who}-${s.round}` : null;
+  if (c && c.state === 'ringing' && !c.outgoing && !s.phoneOnline && !s.paused) ringOn(); else ringOff(); // a connected Droomtelefoon plays its own ringtone
+  lastRing = ringKey;
+  $('sound').hidden = audio?.state === 'running';
+
+  renderTask(s, c, tp);
+  // flash-by: after a call ends, one random selfie or drawing from earlier floats across (never the one just made)
+  const endKey = c && c.state === 'ended' ? `${c.playerId}-${c.n}-${s.round}-${s.turnIndex}` : null;
+  if (endKey && endKey !== lastFlash) {
+    lastFlash = endKey;
+    const pool = (s.gallery || []).filter(g => g.id !== c.media?.id);
+    if (pool.length && Math.random() < 0.7) { const g = pool[Math.floor(Math.random() * pool.length)], el = $('flash'); el.querySelector('img').src = `/media/${g.id}`; el.querySelector('p').textContent = `${g.player} · ronde ${g.round}`; el.className = ''; void el.offsetWidth; el.className = 'on'; }
+  }
+  // speaker: transcript on screen and the admirer's voice through the TV
+  $('transcript').style.display = v.call ? 'flex' : 'none';
+  if (v.call && c) {
+    const k = `${c.playerId}-${c.n}-${s.round}-${s.turnIndex}`, said = v.call.history.filter(h => h.role === 'assistant');
+    if (k !== spkKey) { spkKey = k; spokenSpk = Math.max(0, said.length - 1); }
+    if (said.length > spokenSpk) { say(said.at(-1).text, v.call.voice); spokenSpk = said.length; }
+  }
+  if (v.call && tp) put($('transcript'), v.call.history.slice(-4).map(h => `<div class="${h.role === 'user' ? 'u' : 'a'}">${esc(h.text)}${h.ja ? '<span class="ja">+1 ja</span>' : ''}</div>`).join(''));
+
+  // ticker: rebuilt only when the news changes, so it keeps scrolling smoothly
+  const items = s.feed.length ? s.feed : [{ text: 'Wie is jouw Geheime Aanbidder? Zet je gsm klaar.', color: '#ff9ad5' }];
+  const tk = items.map(f => `<span>${HEART.replace('<svg', `<svg style="fill:${f.color}"`)}${esc(f.text)}</span>`).join('');
+  if ($('tk')._h !== tk) { put($('tk'), tk); $('tk').style.setProperty('--dur', `${Math.max(25, items.reduce((n, f) => n + f.text.length, 0) / 6)}s`); }
+
+  // finale
+  if (s.phase === 'finale') {
+    const rank = [...s.players].filter(p => p.joined).sort((a, b) => b.score - a.score || a.wrong - b.wrong);
+    const pod = (p, i) => p ? `<div class="pod ${i === 0 ? 'first' : ''}" style="--c:${p.color}"><div class="av">${av(p)}</div><b>${esc(p.name)}</b><span>${p.score} punten · ${p.slots.filter(x => x.unmasked).length} van 10 ontmaskerd</span><div class="stand" style="height:${[22, 15, 10][i]}vh">${i + 1}</div></div>` : '';
+    put($('podium'), [pod(rank[1], 1), pod(rank[0], 0), pod(rank[2], 2)].join(''));
+    put($('rest'), rank.slice(3).map((p, i) => `<li>${i + 4}. ${esc(p.name)} · ${p.score}</li>`).join(''));
+    put($('wall'), (s.gallery || []).map(g => `<div class="pola" style="--r:${(g.id.charCodeAt(0) % 9) - 4}deg"><img src="/media/${g.id}" alt=""><p>${esc(g.player)} · #${g.n}</p></div>`).join(''));
+  }
+}
+setInterval(() => { if (state) render(state); }, 500);
+new EventSource('/events?role=host').onmessage = e => render(JSON.parse(e.data));
+</script>
+</body>
+</html>

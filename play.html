@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Droomtelefoon · speler</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Pacifico&family=Nunito:wght@600;800;900&display=swap">
+<style>
+  :root { --pink: #ff2d9b; --purple: #7b2cff; --ink: #2a0a3a; --soft: #ffb3e6; --mint: #d9fff4; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
+  html, body { height: 100% } body { margin: 0; font-family: 'Nunito', system-ui, sans-serif; color: var(--ink); background: linear-gradient(180deg, #ffe3f3 0%, #ffd6ef 40%, var(--mint) 100%); background-attachment: fixed }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; gap: 10px; padding: calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom)) } .screen.on { display: flex }
+  .script { font: 400 16px 'Pacifico'; color: #c0006b } h1 { margin: 0; font: 400 30px/1 'Anton' }
+  button { font-family: 'Nunito'; cursor: pointer; border: 0 }
+  .seat { padding: 16px; border-radius: 999px; background: #fff; border: 2px solid var(--soft); font: 900 18px 'Nunito'; color: var(--ink); text-align: left; display: flex; align-items: center; gap: 12px } .seat.in { opacity: .45 }
+  .seat .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--c) }
+  .top { display: flex; align-items: center; justify-content: space-between }
+  .cochip { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; background: #fff; border: 2px solid var(--soft); max-width: 50% } .cochip .av { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #2ef2ff, var(--pink)); display: grid; place-items: center; font: 900 14px 'Nunito'; color: #0b0014; overflow: hidden; flex-shrink: 0 } .cochip img { width: 100%; height: 100%; object-fit: cover } .cochip span { font: 800 12px/1.1 'Nunito'; color: var(--purple) }
+  .dots { display: flex; gap: 5px; justify-content: space-between } .dot10 { flex: 1; aspect-ratio: 1; border-radius: 14px; background: #fff; border: 2px solid var(--soft); font: 900 14px 'Nunito'; color: #c0006b; display: grid; place-items: center; padding: 0; position: relative }
+  .dot10.open { background: linear-gradient(180deg, #ff6ad5, var(--pink)); color: #fff; border-color: var(--pink) } .dot10.sel { outline: 3px solid var(--purple); outline-offset: 1px } .dot10.co { background: #ffe600; color: var(--ink); border-color: #e5c200 }
+  .dot10 b { position: absolute; top: -6px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: var(--purple); color: #fff; font-size: 10px; display: grid; place-items: center }
+  .who { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 20px; background: #fff; border: 2px solid var(--soft) } .who .sil { width: 44px; height: 44px; border-radius: 50%; background: #0b0014; display: grid; place-items: center; overflow: hidden } .who .sil svg { width: 70% } .who .sil img { width: 100%; height: 100%; object-fit: cover }
+  .who b { font: 900 17px/1.1 'Nunito' } .who small { font: 700 12px 'Nunito'; color: var(--purple) } .who .left { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: var(--mint); border: 2px solid #5bd400; font: 800 12px 'Nunito'; color: #1e6000; white-space: nowrap }
+  #thread { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px 2px }
+  .m { max-width: 80%; padding: 10px 14px; font: 700 15px/1.35 'Nunito' } .m.u { align-self: flex-end; border-radius: 20px 20px 6px 20px; background: linear-gradient(180deg, var(--purple), #4b0fb0); color: #fff } .m.a { align-self: flex-start; border-radius: 20px 20px 20px 6px; background: #fff; border: 2px solid var(--soft) } .m.call { border-style: dashed } .sep { align-self: center; font: 800 11px 'Nunito'; color: #c0006b; letter-spacing: 2px }
+  .inrow { display: flex; gap: 8px; align-items: center } .inrow input { flex: 1; height: 48px; border-radius: 999px; border: 2px solid var(--soft); background: #fff; color: var(--ink); padding: 0 16px; font: 700 15px 'Nunito'; min-width: 0 }
+  .send { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(180deg, #ff6ad5, var(--pink)); box-shadow: 0 5px 0 #a3005c; display: grid; place-items: center; flex-shrink: 0 }
+  .acts { display: flex; gap: 8px } .unmask { flex: 1; height: 50px; border-radius: 999px; background: linear-gradient(180deg, #ffe600, #ff8a00); color: #0b0014; font: 400 18px 'Anton'; box-shadow: 0 5px 0 #9a5200 } .unmask:disabled { opacity: .4 }
+  .cards { display: flex; gap: 6px } .card { flex: 1; padding: 10px 6px; border-radius: 16px; background: #fff; border: 2px solid var(--purple); color: var(--purple); font: 800 12px/1.15 'Nunito'; text-align: center } .card:disabled { opacity: .35; border-color: #ccc; color: #999 }
+  .live { padding: 10px 14px; border-radius: 16px; background: #0b0014; color: #fff; font: 700 13px/1.3 'Nunito' } .live b { color: #ffe600 }
+  /* your call rings: pick up from your own phone, the voice stays on the laptop's Droomtelefoon */
+  .live.ringme { padding: 16px; text-align: center; font: 900 20px/1.25 'Nunito'; background: radial-gradient(circle at 50% 0%, #7b2cff, #0b0014 80%); box-shadow: 0 0 0 3px #5bd400, 0 0 30px #5bd40088; animation: ringme .6s ease-in-out infinite alternate }
+  @keyframes ringme { from { transform: rotate(-1.5deg) } to { transform: rotate(1.5deg) } } @media (prefers-reduced-motion: reduce) { .live.ringme { animation: none } }
+  .dialpad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px } .dialpad button { aspect-ratio: 1; border-radius: 50%; background: linear-gradient(#fff6fc, #ffc6e7); color: #c0006b; font: 400 26px 'Anton'; box-shadow: 0 4px 0 #b30b6a } .dialpad button:disabled { background: #3a1556; color: #6d4a8a; box-shadow: none }
+  .pickup { display: block; width: 100%; margin-top: 12px; height: 64px; border-radius: 999px; background: linear-gradient(180deg, #8dff4f, #36b300); box-shadow: 0 6px 0 #1f6b00; color: #0b0014; font: 400 28px 'Anton'; letter-spacing: 1px }
+  .note { font: 700 13px 'Nunito'; color: #7b2cff; text-align: center }
+  .ja { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: #b4ff3c; color: #0b0014; font: 900 12px 'Nunito'; vertical-align: middle; white-space: nowrap }
+  .dot10.pic { background-size: cover; background-position: center; border-color: var(--pink); color: #fff } .dot10.pic span { position: absolute; right: 2px; bottom: 1px; font: 900 10px 'Nunito'; text-shadow: 0 0 3px #000, 0 0 3px #000 }
+  .dot10 span { pointer-events: none }
+  .who .sil { flex-shrink: 0 } .who .sil img { width: 100%; height: 100%; object-fit: cover }
+  .vote { padding: 12px 14px; border-radius: 18px; background: linear-gradient(160deg, #ffe600, #ff8a00); color: var(--ink); font: 700 15px/1.35 'Nunito'; box-shadow: 0 5px 0 #9a5200 } .vrow { display: flex; gap: 8px; margin-top: 8px } .vrow button { flex: 1; height: 52px; border-radius: 999px; font: 900 18px 'Nunito'; color: #fff } .vup { background: #3fb800; box-shadow: 0 5px 0 #1e6000 } .vdn { background: #c40000; box-shadow: 0 5px 0 #7a0000 }
+  /* steelmoment: full-screen pop-up every 10 minutes */
+  .steal { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(circle at 50% 30%, #7b2cffee, #0b0014f2 70%) } .steal.on { display: flex }
+  .steal-box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; color: #fff; text-align: center }
+  .steal h2 { margin: 0; font: 400 clamp(44px, 14vw, 64px)/.95 'Anton'; color: #ffe600; text-shadow: 0 0 24px #ff2d9b, 0 4px 0 #c0006b; animation: stealpulse .7s ease-in-out infinite alternate }
+  @keyframes stealpulse { from { transform: scale(1) rotate(-2deg) } to { transform: scale(1.06) rotate(2deg) } }
+  @media (prefers-reduced-motion: reduce) { .steal h2 { animation: none } }
+  .steal-t { font: 400 40px/1 'Anton'; color: #2ef2ff } .steal p { margin: 0; font: 800 15px/1.35 'Nunito' } .steal small { font: 800 12px 'Nunito'; color: #ffb3e6; text-align: left }
+  .steal-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center } .steal-row button { padding: 10px 14px; border-radius: 999px; background: #fff; color: var(--ink); font: 900 15px 'Nunito'; border: 3px solid var(--c) } .steal-row button.sel { background: var(--c); color: #fff }
+  .steal-nums { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px } .steal-nums button { aspect-ratio: 1; border-radius: 14px; background: #fff; color: #c0006b; font: 900 18px 'Nunito' } .steal-nums button.sel { background: #ffe600; color: var(--ink); outline: 3px solid #fff } .steal-nums button:disabled { opacity: .25 }
+  .steal input { height: 52px; border-radius: 999px; border: 3px solid #ffe600; padding: 0 18px; font: 800 17px 'Nunito'; color: var(--ink); min-width: 0 }
+  .steal .no { background: none; color: #ffb3e6; font: 800 14px 'Nunito'; text-decoration: underline; padding: 6px }
+</style>
+</head>
+<body>
+<div id="join" class="screen on">
+  <div class="script">Droomtelefoon</div><h1>WIE BEN JIJ?</h1>
+  <div id="seats" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto"></div>
+</div>
+
+<div id="home" class="screen">
+  <div class="top"><div><div class="script">Droomtelefoon</div><h1 id="h-title"></h1></div><div class="cochip" id="cochip"></div></div>
+  <div class="dots" id="dots"></div>
+  <div id="live" class="live" style="display:none"></div>
+  <div id="voteBox" class="vote" style="display:none"></div>
+  <div class="cards" id="cards"></div>
+  <div class="who" id="who"></div>
+  <div id="thread"></div>
+  <div class="inrow" id="smsrow"><label for="sms" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Sms</label><input id="sms" placeholder="Sms…" autocomplete="off"><button class="send" aria-label="Verstuur" onclick="sendSms()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button></div>
+  <div class="acts"><button class="unmask" id="unmask" onclick="unmask()">ONTMASKER</button></div>
+  <div class="note" id="note"></div>
+</div>
+
+<div class="steal" id="steal" role="dialog" aria-modal="true" aria-labelledby="steal-h">
+  <div class="steal-box">
+    <h2 id="steal-h">STEEL<br>AANBIDDER</h2>
+    <div class="steal-t" id="steal-t"></div>
+    <p>Ken jij de naam van iemands aanbidder? Steel hem: <b>+5</b>. Fout: <b>−2</b>. Eén poging.</p>
+    <small>1. Van wie?</small><div class="steal-row" id="steal-who"></div>
+    <small>2. Welk nummer?</small><div class="steal-nums" id="steal-nr"></div>
+    <small>3. Wie is het?</small><input id="steal-name" placeholder="Naam van de aanbidder" autocomplete="off" aria-label="Naam van de aanbidder">
+    <button class="unmask" onclick="steal()">STEEL!</button>
+    <button class="no" onclick="stealClose()">Nee, deze keer niet</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const SIL = '<svg viewBox="0 0 60 60" fill="none" stroke="#2ef2ff" stroke-width="2.6" stroke-linecap="round"><circle cx="30" cy="20" r="11"/><path d="M8 56c2-14 10-21 22-21s20 7 22 21"/><path d="M24 33l6 8 6-8" stroke="#ff2d9b"/></svg>';
+const put = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let me = null, sel = 1, state, lastCount = 0, es, gameCode = null, ringKey = null;
+const show = id => document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+async function act(body) { const r = await fetch('/action', { method: 'POST', body: JSON.stringify({ ...body, playerId: me }) }); if (!r.ok) alert((await r.json()).error); return r.ok ? r.json() : null; }
+
+async function join(id) { me = id; await act({ type: 'join' }); connect(); }
+function connect() { es?.close(); es = new EventSource(`/events?role=player&id=${me}`); es.onmessage = e => render(JSON.parse(e.data)); show('home'); }
+function pick(n) { sel = n; render(state); }
+async function sendSms() { const t = $('sms').value.trim(); if (!t || sel === 0) return; $('sms').value = ''; await act({ type: 'sms', n: sel, text: t }); }
+$('sms').addEventListener('keydown', e => { if (e.key === 'Enter') sendSms(); });
+let dialBusy = false; // the call itself (voice, microphone) stays on the laptop's Droomtelefoon
+async function dialFromPhone(n) { if (dialBusy) return; dialBusy = true; await act({ type: 'dial', n }); dialBusy = false; }
+async function unmask() { const name = prompt(`Wie is aanbidder #${sel}? Typ de naam:`); if (!name) return; const r = await act({ type: 'guess', n: sel, name, via: 'sms' }); if (r) alert(r.correct ? `JA! #${sel} is ${r.answer}. +${r.pts}` : 'Nee… −2. Probeer later nog eens.'); }
+function ping() { try { const a = new AudioContext(), t = a.currentTime; [[880, 0], [1175, .12]].forEach(([f, d]) => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; g.gain.setValueAtTime(.1, t + d); g.gain.exponentialRampToValueAtTime(.001, t + d + .25); o.connect(g).connect(a.destination); o.start(t + d); o.stop(t + d + .3); }); } catch {} }
+
+function render(v) {
+  state = v; const s = v.pub;
+  if (gameCode && s.code !== gameCode && me) { me = null; sel = 1; es?.close(); es = null; show('join'); } // the game was reset: back to the name list
+  gameCode = s.code;
+  if (!me) { $('seats').innerHTML = s.players.map(p => `<button class="seat ${p.joined ? 'in' : ''}" style="--c:${p.color}" onclick="join('${p.id}')"><span class="dot"></span>${esc(p.name)}<small style="margin-left:auto;color:#c0006b">${p.joined ? 'al ingelogd' : ''}</small></button>`).join(''); return; }
+  const m = v.me; if (!m) return;
+  $('h-title').textContent = `${m.name.toUpperCase()} · ${m.score} PTN`;
+  $('cochip').innerHTML = `<div class="av">${m.co.avatar ? `<img src="${m.co.avatar}" alt="">` : esc(m.co.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase())}</div><span>${esc(m.co.name)}</span>`;
+  const unread = a => a.thread.filter(t => t.role === 'assistant').length;
+  $('dots').innerHTML = `<button class="dot10 co ${sel === 0 ? 'sel' : ''}" onclick="pick(0)">★</button>` + m.admirers.map(a => `<button class="dot10 ${a.unmasked ? 'open' : ''} ${a.img ? 'pic' : ''} ${sel === a.n ? 'sel' : ''}" aria-label="Aanbidder ${a.n}${a.name ? ': ' + esc(a.name) : ''}" ${a.img ? `style="background-image:url('${a.img}')"` : ''} onclick="pick(${a.n})"><span>${a.n}</span>${a.calls && !a.unmasked ? `<b>${a.calls}</b>` : ''}</button>`).join('');
+
+  // live call banner + cards
+  const c = s.call, cp = c && s.players.find(p => p.id === c.playerId);
+  const mine = c && c.playerId === me;
+  $('live').style.display = s.paused || (c && c.state !== 'ended') ? '' : 'none';
+  const ringMe = !s.paused && mine && c.state === 'ringing' && !c.outgoing, dialMe = !s.paused && mine && c.state === 'dial'; $('live').classList.toggle('ringme', !!(ringMe || dialMe));
+  if (ringMe && ringKey !== `${c.playerId}-${c.who}-${c.n}-${s.round}`) { ringKey = `${c.playerId}-${c.who}-${c.n}-${s.round}`; ping(); navigator.vibrate?.([400, 200, 400, 200, 400]); }
+  if (s.paused) put($('live'), '⏸ <b>PAUZE</b> · de klok staat stil');
+  else if (c && c.state !== 'ended') put($('live'), ringMe ? `📞 ${c.who === 'co' ? `<b>${esc(m.co.name)}</b>` : `<b>Aanbidder #${c.n}</b>`} belt jou!<button class="pickup" onclick="act({type:'pickup'})">OPNEMEN</button>`
+    : dialMe ? `📞 <b>Jij</b> belt! Wie bel je?<div class="dialpad">${m.admirers.map(a => `<button ${a.unmasked ? 'disabled' : ''} aria-label="Bel aanbidder ${a.n}" onclick="dialFromPhone(${a.n})">${a.n % 10}</button>`).join('')}</div>`
+    : mine ? (c.state === 'ringing' ? `<b>Jij</b> belt #${c.n}… even geduld.` : '<b>Jij</b> bent aan de lijn. Praat met de Droomtelefoon.') : `<b>${esc(cp.name)}</b> ${c.state === 'dial' ? 'kiest een nummer' : c.state === 'ringing' ? `wordt gebeld door ${c.who === 'co' ? esc(cp.co.name) : '#' + c.n}` : `praat met ${c.who === 'co' ? esc(cp.co.name) : '#' + c.n}`}${c.speaker ? ' · luidspreker aan' : ''}` + (m.liveCall ? `<div style="margin-top:6px;color:#ffb3e6">${m.liveCall.history.slice(-2).map(h => esc(h.text)).join(' / ')}</div>` : '')); // put: only redraw on change, so a tap on OPNEMEN is never lost to a redraw
+  const t = c && c.task, voting = t && t.phase === 'voting' && !mine;
+  $('voteBox').style.display = voting ? '' : 'none';
+  if (voting) { const did = t.voted.includes(me); put($('voteBox'), did ? `<b>Bedankt!</b> ${t.votes} 👍 tot nu toe.` : `<b>${esc(cp.name)} deed:</b> ${esc(t.prompt)}<br>Goed genoeg?<div class="vrow"><button class="vup" onclick="act({type:'vote',up:true})">👍 Ja!</button><button class="vdn" onclick="act({type:'vote',up:false})">👎 Nee</button></div>`); }
+  else if (t && t.phase !== 'done' && !mine) $('live').innerHTML += `<div style="margin-top:6px;color:#ffe600">Opdracht van #${c.n}: ${esc(t.prompt)}</div>`;
+  const canCard = c && !mine && ['ringing', 'active'].includes(c.state);
+  $('cards').innerHTML = [['mam', 'Mam zegt: ophangen!']].map(([k, l]) => `<button class="card" ${m.cards[k] && canCard ? '' : 'disabled'} onclick="act({type:'card',card:'${k}'})">${l}</button>`).join('');
+
+  // selected thread
+  let thread, title, sub, left = '';
+  if (sel === 0) { thread = m.co.thread; title = m.co.name; sub = 'jouw co-speler · helpt jou'; $('smsrow').style.display = 'none'; $('unmask').style.display = 'none'; }
+  else {
+    const a = m.admirers.find(a => a.n === sel); thread = a.thread; title = a.unmasked ? `#${a.n} · ${a.name}` : `Aanbidder #${a.n}`;
+    sub = a.unmasked ? a.profile : `${a.calls}× gebeld`; left = a.unmasked ? 'ontmaskerd' : `nog ${m.smsLeft} sms`;
+    $('smsrow').style.display = a.unmasked ? 'none' : ''; $('unmask').style.display = ''; $('unmask').disabled = a.unmasked; $('unmask').textContent = `ONTMASKER #${a.n}`;
+  }
+  const face = sel === 0 ? m.co.avatar : m.admirers.find(a => a.n === sel)?.img;
+  $('who').innerHTML = `<div class="sil">${face ? `<img src="${face}" alt="">` : SIL}</div><div><b>${esc(title)}</b><br><small>${esc(sub)}</small></div>${left ? `<div class="left">${left}</div>` : ''}`;
+  let lastVia = null;
+  $('thread').innerHTML = thread.map(t => { const sep = t.via !== lastVia ? `<div class="sep">${t.via === 'call' ? 'GESPREK · RONDE ' + t.round : 'SMS'}</div>` : ''; lastVia = t.via; return sep + `<div class="m ${t.role === 'user' ? 'u' : 'a'} ${t.via}">${esc(t.text)}${t.ja ? '<span class="ja">+1 JA</span>' : ''}</div>`; }).join('') || `<div class="note">Nog niets. Sms een vraag of wacht op een belletje.</div>`;
+  $('thread').scrollTop = 1e6;
+  const total = m.admirers.reduce((n, a) => n + unread(a), 0) + m.co.thread.length;
+  if (total > lastCount && lastCount) ping(); lastCount = total;
+  stealRender(s);
+  $('note').textContent = s.phase === 'lobby' ? 'Wachten tot het spel start.' : s.phase === 'finale' ? 'Het spel is gedaan. Kijk naar het scherm.' : `Ronde ${s.round} van ${s.rounds}`;
+}
+// ---------- steelmoment ----------
+let stealFrom = null, stealN = null, stealSeen = 0, stealShut = 0;
+function stealOpen(s) { const w = s.steal; return !!(me && w && s.phase === 'playing' && !s.paused && Date.now() < w.until && !w.tried.includes(me) && stealShut !== w.until); }
+function stealRender(s) {
+  const on = stealOpen(s); $('steal').classList.toggle('on', on); if (!on) return;
+  if (stealSeen !== s.steal.until) { stealSeen = s.steal.until; stealFrom = stealN = null; $('steal-name').value = ''; ping(); navigator.vibrate?.([300, 100, 300, 100, 600]); }
+  const others = s.players.filter(p => p.joined && p.id !== me), c = s.call;
+  put($('steal-who'), others.map(p => `<button class="${stealFrom === p.id ? 'sel' : ''}" style="--c:${p.color}" onclick="stealFrom='${p.id}';stealN=null;stealRender(state.pub)">${esc(p.name)}</button>`).join('') || '<small>Niemand anders speelt mee.</small>');
+  const v = others.find(p => p.id === stealFrom), live = n => c && c.who === 'admirer' && c.playerId === stealFrom && c.n === n && c.state !== 'ended';
+  put($('steal-nr'), v ? v.slots.map(sl => `<button class="${stealN === sl.n ? 'sel' : ''}" ${sl.unmasked || live(sl.n) ? 'disabled' : ''} onclick="stealN=${sl.n};stealRender(state.pub)">${sl.n}</button>`).join('') : '');
+}
+async function steal() {
+  const name = $('steal-name').value.trim();
+  if (!stealFrom || !stealN || !name) return alert('Kies een speler, een nummer en typ de naam.');
+  const r = await act({ type: 'steal', from: stealFrom, n: stealN, name });
+  if (r) { alert(r.correct ? `GESTOLEN! #${stealN} is ${r.answer}. +${r.pts}` : 'Mis… −2.'); stealClose(); }
+}
+function stealClose() { stealShut = state.pub.steal?.until || 0; $('steal').classList.remove('on'); }
+setInterval(() => { const w = state?.pub?.steal; if (!w) return; const left = Math.ceil((w.until - Date.now()) / 1000); $('steal-t').textContent = left > 0 ? `0:${String(left).padStart(2, '0')}` : ''; if (left <= 0) stealRender(state.pub); }, 250);
+
+// Nobody is remembered: every new game (and every page load) starts at "Wie ben jij?".
+new EventSource('/events?role=host').onmessage = e => { if (!me) render(JSON.parse(e.data)); };
+try { localStorage.removeItem('me'); localStorage.removeItem('sel'); } catch {}
+</script>
+</body>
+</html>
